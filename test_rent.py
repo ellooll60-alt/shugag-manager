@@ -540,7 +540,8 @@ with tabs[4]:
     with c2:
         end_date = st.date_input("إلى تاريخ", value=today)
     with c3:
-        fin_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units)
+        fin_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units, key="fin_unit_filter")
+
 
     fin = []
     for b in all_fin:
