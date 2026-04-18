@@ -153,16 +153,13 @@ with tabs[0]:
     st.subheader("📊 حالة الوحدات")
 
     # جلب الحجوزات الحالية
-bookings_res = supabase.table("bookings").select("*").execute()
-bookings = bookings_res.data if bookings_res.data else []
+    bookings_res = supabase.table("bookings").select("*").execute()
+    bookings = bookings_res.data if bookings_res.data else []
 
-# السطر الصحيح
-occupied_units = [b["unit"] for b in bookings if b.get("status", "مشغول") == "مشغول"]
+    # تحديد الوحدات المشغولة
+    occupied_units = [b["unit"] for b in bookings if b.get("status", "مشغول") == "مشغول"]
 
-free_units = [u for u in units if u not in occupied_units]
-
-
-
+    # تحديد الوحدات الشاغرة
     free_units = [u for u in units if u not in occupied_units]
 
     col1, col2 = st.columns(2)
@@ -187,6 +184,7 @@ free_units = [u for u in units if u not in occupied_units]
                     st.experimental_rerun()
         else:
             st.info("لا توجد وحدات مشغولة حالياً")
+
 
 # =========================================================
 # ➕ التبويب الثاني: إضافة حجز جديد
