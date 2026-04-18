@@ -75,7 +75,7 @@ if 'logged_in' not in st.session_state:
     # =========================
     c_logo, c_title, c_empty = st.columns([2, 5, 1])
 
-        with c_title:
+         with c_title:
         st.markdown(
             f"<h1 style='text-align:center; color:#111827; margin-bottom:0.5rem;'>{app_name}</h1>",
             unsafe_allow_html=True
