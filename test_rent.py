@@ -216,7 +216,8 @@ with tabs[1]:
                 "expenses": expenses,
                 "compensation": compensation,
                 "notes": notes,
-                "status": "مشغول"
+                b.get("status", "مشغول")
+
             }).execute()
 
             st.success("تم إضافة الحجز بنجاح")
