@@ -81,7 +81,7 @@ with c_title:
             unsafe_allow_html=True
         )
 
-        with c_logo:
+           with c_logo:
         if logo_url:
             st.image(logo_url, width=110)
 
