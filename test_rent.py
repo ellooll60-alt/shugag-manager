@@ -156,7 +156,8 @@ with tabs[0]:
     bookings_res = supabase.table("bookings").select("*").execute()
     bookings = bookings_res.data if bookings_res.data else []
 
-    occupied_units = [b["unit"] for b in bookings if b["status"] == "مشغول"]
+    occupied_units = [b["unit"] for b in bookings if b.get("status", "مشغول") == "مشغول"]
+
     free_units = [u for u in units if u not in occupied_units]
 
     col1, col2 = st.columns(2)
