@@ -42,22 +42,22 @@ with tabs[3]:
             update_data = {}
 
             # إصلاح الحقول الناقصة
-            if "unit" not in b or not b["unit"]:
+            if not b.get("unit"):
                 update_data["unit"] = "غير محدد"
 
-            if "guest" not in b or not b["guest"]:
+            if not b.get("guest"):
                 update_data["guest"] = "غير معروف"
 
-            if "check_in" not in b or not b["check_in"]:
+            if not b.get("check_in"):
                 update_data["check_in"] = ""
 
-            if "check_out" not in b or not b["check_out"]:
+            if not b.get("check_out"):
                 update_data["check_out"] = ""
 
-            if "status" not in b or not b["status"]:
+            if not b.get("status"):
                 update_data["status"] = "مشغول"
 
-            if "price" not in b or not b["price"]:
+            if not b.get("price"):
                 update_data["price"] = 0
 
             # تحديث السجل إذا كان يحتاج إصلاح
@@ -68,22 +68,51 @@ with tabs[3]:
         st.success(f"✔️ تم إصلاح {fixed_count} سجل بنجاح")
         st.experimental_rerun()
 
-# =========================
-# 5) الهيدر العلوي (الشعار + العنوان)
-# =========================
-c_logo, c_title, c_empty = st.columns([2, 5, 1])
+    st.markdown("---")
 
-with c_title:
-    st.markdown(
-        f"<h1 style='text-align:center; color:#111827; margin-bottom:0.5rem;'>{app_name}</h1>",
-        unsafe_allow_html=True
-    )
+    # =========================
+    # الهيدر العلوي (الشعار + العنوان)
+    # =========================
+    c_logo, c_title, c_empty = st.columns([2, 5, 1])
 
-with c_logo:
-    if logo_url:
-        st.image(logo_url, width=110)
+    with c_title:
+        st.markdown(
+            f"<h1 style='text-align:center; color:#111827; margin-bottom:0.5rem;'>{app_name}</h1>",
+            unsafe_allow_html=True
+        )
 
-st.markdown("<hr style='margin-top:0.5rem; margin-bottom:1rem;'>", unsafe_allow_html=True)
+    with c_logo:
+        if logo_url:
+            st.image(logo_url, width=110)
+
+    st.markdown("<hr style='margin-top:0.5rem; margin-bottom:1rem;'>", unsafe_allow_html=True)
+
+    # =========================
+    # تسجيل الدخول / الخروج
+    # =========================
+    if not st.session_state.logged_in:
+        st.sidebar.title("🔐 دخول النظام")
+        with st.sidebar.form("login_form"):
+            u = st.text_input("اسم المستخدم")
+            p = st.text_input("كلمة المرور", type="password")
+            if st.form_submit_button("دخول"):
+                res = supabase.table("users").select("*").eq("username", u).eq("password", p).execute()
+                if res.data:
+                    st.session_state.logged_in = True
+                    st.session_state.user_name = res.data[0]["username"]
+                    st.session_state.user_role = res.data[0]["role"]
+                    st.experimental_rerun()
+                else:
+                    st.sidebar.error("❌ بيانات خاطئة")
+    else:
+        st.sidebar.success(f"👤 {st.session_state.user_name} ({st.session_state.user_role})")
+        if st.sidebar.button("🚪 خروج"):
+            st.session_state.logged_in = False
+            st.session_state.user_name = ""
+            st.session_state.user_role = ""
+            st.session_state.selected_unit = None
+            st.session_state.edit_booking = None
+            st.experimental_rerun()
 
 # =========================
 # 6) تسجيل الدخول / الخروج
