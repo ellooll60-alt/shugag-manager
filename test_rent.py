@@ -332,8 +332,10 @@ with tabs[3]:
     f1, f2, f3 = st.columns(3)
     with f1:
         filter_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units)
+
     with f2:
-        filter_platform = st.selectbox("تصفية حسب المنصة", ["الكل"] + plats)
+        filter_platform = st.selectbox("تصفية حسب المنصة", ["الكل"] + plats, key="platform_log")
+
     with f3:
         filter_client = st.text_input("بحث باسم العميل")
 
