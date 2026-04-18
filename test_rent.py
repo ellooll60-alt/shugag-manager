@@ -575,7 +575,7 @@ net = total_income - total_expenses + total_comp
 
 c1, c2, c3, c4 = st.columns(4)
 
-    with c1:
+with c1:
             st.markdown(
                 "<div class='glass-metric'><div class='neon-sub'>إجمالي الإيرادات</div>"
                 f"<div class='neon-number'>{total_income}</div></div>",
