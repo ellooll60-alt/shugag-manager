@@ -119,51 +119,27 @@ else:
         st.experimental_rerun()
 
     # =========================
-    # الهيدر العلوي (الشعار + العنوان)
-    # =========================
-    c_logo, c_title, c_empty = st.columns([2, 5, 1])
+# 4) الهيدر العلوي (الشعار + العنوان)
+# =========================
+app_name = "نظام إدارة الوحدات"
+logo_url = ""  # ضع رابط الشعار هنا إذا كان موجودًا
 
-    with c_title:
-        st.markdown(
-            f"<h1 style='text-align:center; color:#111827; margin-bottom:0.5rem;'>{app_name}</h1>",
-            unsafe_allow_html=True
-        )
+c_logo, c_title, c_empty = st.columns([2, 5, 1])
 
-    with c_logo:
-        if logo_url:
-            st.image(logo_url, width=110)
+with c_title:
+    st.markdown(
+        f"<h1 style='text-align:center; color:#111827; margin-bottom:0.5rem;'>{app_name}</h1>",
+        unsafe_allow_html=True
+    )
 
-    st.markdown("<hr style='margin-top:0.5rem; margin-bottom:1rem;'>", unsafe_allow_html=True)
+with c_logo:
+    if logo_url:
+        st.image(logo_url, width=110)
 
-    # =========================
-    # تسجيل الدخول / الخروج
-    # =========================
-    if not st.session_state.logged_in:
-        st.sidebar.title("🔐 دخول النظام")
-        with st.sidebar.form("login_form"):
-            u = st.text_input("اسم المستخدم")
-            p = st.text_input("كلمة المرور", type="password")
-            if st.form_submit_button("دخول"):
-                res = supabase.table("users").select("*").eq("username", u).eq("password", p).execute()
-                if res.data:
-                    st.session_state.logged_in = True
-                    st.session_state.user_name = res.data[0]["username"]
-                    st.session_state.user_role = res.data[0]["role"]
-                    st.experimental_rerun()
-                else:
-                    st.sidebar.error("❌ بيانات خاطئة")
-    else:
-        st.sidebar.success(f"👤 {st.session_state.user_name} ({st.session_state.user_role})")
-        if st.sidebar.button("🚪 خروج"):
-            st.session_state.logged_in = False
-            st.session_state.user_name = ""
-            st.session_state.user_role = ""
-            st.session_state.selected_unit = None
-            st.session_state.edit_booking = None
-            st.experimental_rerun()
+st.markdown("<hr style='margin-top:0.5rem; margin-bottom:1rem;'>", unsafe_allow_html=True)
 
 # =========================
-# 6) تسجيل الدخول / الخروج
+# 5) تسجيل الدخول / الخروج
 # =========================
 if not st.session_state.logged_in:
     st.sidebar.title("🔐 دخول النظام")
@@ -190,9 +166,10 @@ else:
         st.experimental_rerun()
 
 # =========================
-# 7) تحميل البيانات الأساسية + إنشاء التبويبات
+# 6) تحميل البيانات الأساسية + إنشاء التبويبات
 # =========================
 if st.session_state.logged_in:
+
     # تحميل أسماء الوحدات
     units_res = supabase.table("units_names").select("name").execute()
     units = [r["name"] for r in units_res.data] if units_res.data else []
@@ -210,6 +187,7 @@ if st.session_state.logged_in:
         "💰 التقارير المالية",
         "⚙️ الإعدادات"
     ])
+
 # =========================================================
 # 📊 التبويب الأول: حالة الوحدات
 # =========================================================
@@ -220,7 +198,7 @@ with tabs[0]:
     bookings_res = supabase.table("bookings").select("*").execute()
     bookings = bookings_res.data if bookings_res.data else []
 
-    # تحديد الوحدات المشغولة (نسخة آمنة)
+    # تحديد الوحدات المشغولة
     occupied_units = [
         b.get("unit")
         for b in bookings
@@ -232,6 +210,7 @@ with tabs[0]:
 
     col1, col2 = st.columns(2)
 
+    # الوحدات الشاغرة
     with col1:
         st.markdown("### 🟢 الوحدات الشاغرة")
         if free_units:
@@ -242,18 +221,7 @@ with tabs[0]:
         else:
             st.info("لا توجد وحدات شاغرة حالياً")
 
-    with col2:
-        st.markdown("### 🔴 الوحدات المشغولة")
-        if occupied_units:
-            for u in occupied_units:
-                if st.button(f"إخلاء {u}", key=f"occ_{u}"):
-                    supabase.table("bookings").delete().eq("unit", u).execute()
-                    st.success(f"تم إخلاء الوحدة {u}")
-                    st.experimental_rerun()
-        else:
-            st.info("لا توجد وحدات مشغولة حالياً")
-
-
+    # الوحدات المشغولة
     with col2:
         st.markdown("### 🔴 الوحدات المشغولة")
         if occupied_units:
@@ -303,6 +271,8 @@ with tabs[1]:
 
             st.success("تم إضافة الحجز بنجاح")
             st.experimental_rerun()
+
+
 # =========================================================
 # 📋 التبويب الثالث: السجل العام
 # =========================================================
@@ -319,24 +289,24 @@ with tabs[2]:
     if search:
         all_bookings = [
             b for b in all_bookings
-            if search in b["guest"] or search in b["phone"]
+            if search in b.get("guest", "") or search in b.get("phone", "")
         ]
 
-    # 🔔 تنبيه بقرب الخروج (خلال 24 ساعة)
+    # 🔔 تنبيه بقرب الخروج
     st.markdown("### 🔔 حجوزات يقترب موعد خروجها")
     near_exit = [
         b for b in all_bookings
-        if datetime.strptime(b["check_out"], "%Y-%m-%d").date() <= date.today() + timedelta(days=1)
+        if datetime.strptime(b["check_out"], "%Y-%m-%d").date()
+        <= date.today() + timedelta(days=1)
     ]
 
     if near_exit:
         for b in near_exit:
             st.warning(
-    f"الوحدة {b.get('unit', 'غير محدد')} — "
-    f"العميل {b.get('guest', 'غير معروف')} — "
-    f"الخروج: {b.get('check_out', 'غير مسجل')}"
-)
-
+                f"الوحدة {b.get('unit', 'غير محدد')} — "
+                f"العميل {b.get('guest', 'غير معروف')} — "
+                f"الخروج: {b.get('check_out', 'غير مسجل')}"
+            )
     else:
         st.info("لا توجد حجوزات يقترب موعد خروجها")
 
@@ -345,18 +315,17 @@ with tabs[2]:
     # عرض الحجوزات
     for b in all_bookings:
         with st.expander(
-    f"📌 {b.get('unit', 'غير محدد')} — "
-    f"{b.get('guest', 'غير معروف')} — "
-    f"{b.get('check_in', 'غير مسجل')} → {b.get('check_out', 'غير مسجل')}"
-):
-
-            st.write(f"**العميل:** {b['guest']}")
-            st.write(f"**الهاتف:** {b['phone']}")
-            st.write(f"**المنصة:** {b['platform']}")
-            st.write(f"**السعر:** {b['price']}")
-            st.write(f"**المصاريف:** {b['expenses']}")
-            st.write(f"**التعويضات:** {b['compensation']}")
-            st.write(f"**ملاحظات:** {b['notes']}")
+            f"📌 {b.get('unit', 'غير محدد')} — "
+            f"{b.get('guest', 'غير معروف')} — "
+            f"{b.get('check_in', 'غير مسجل')} → {b.get('check_out', 'غير مسجل')}"
+        ):
+            st.write(f"**العميل:** {b.get('guest', '')}")
+            st.write(f"**الهاتف:** {b.get('phone', '')}")
+            st.write(f"**المنصة:** {b.get('platform', '')}")
+            st.write(f"**السعر:** {b.get('price', 0)}")
+            st.write(f"**المصاريف:** {b.get('expenses', 0)}")
+            st.write(f"**التعويضات:** {b.get('compensation', 0)}")
+            st.write(f"**ملاحظات:** {b.get('notes', '')}")
 
             colA, colB, colC = st.columns(3)
 
@@ -385,8 +354,36 @@ with tabs[2]:
         edit = st.session_state.edit_booking
 
         with st.form("edit_form"):
-            unit = st.select
-            # =========================================================
+            unit = st.selectbox("الوحدة", units, index=units.index(edit["unit"]))
+            guest = st.text_input("اسم العميل", edit["guest"])
+            phone = st.text_input("رقم الهاتف", edit["phone"])
+            check_in = st.date_input("تاريخ الدخول", datetime.strptime(edit["check_in"], "%Y-%m-%d"))
+            check_out = st.date_input("تاريخ الخروج", datetime.strptime(edit["check_out"], "%Y-%m-%d"))
+            price = st.number_input("السعر", min_value=0, value=edit["price"])
+            expenses = st.number_input("المصاريف", min_value=0, value=edit["expenses"])
+            compensation = st.number_input("التعويضات", min_value=0, value=edit["compensation"])
+            notes = st.text_area("ملاحظات", edit["notes"])
+
+            save_edit = st.form_submit_button("💾 حفظ التعديلات")
+
+            if save_edit:
+                supabase.table("bookings").update({
+                    "unit": unit,
+                    "guest": guest,
+                    "phone": phone,
+                    "check_in": str(check_in),
+                    "check_out": str(check_out),
+                    "price": price,
+                    "expenses": expenses,
+                    "compensation": compensation,
+                    "notes": notes
+                }).eq("id", edit["id"]).execute()
+
+                st.success("تم تحديث الحجز")
+                st.session_state.edit_booking = None
+                st.experimental_rerun()
+
+           # =========================================================
 # 💰 التبويب الرابع: التقارير المالية
 # =========================================================
 with tabs[3]:
@@ -400,9 +397,9 @@ with tabs[3]:
         st.info("لا توجد بيانات مالية حالياً")
     else:
         # حساب الإجماليات
-        total_income = sum(b["price"] for b in fin)
-        total_expenses = sum(b["expenses"] for b in fin)
-        total_compensation = sum(b["compensation"] for b in fin)
+        total_income = sum(b.get("price", 0) for b in fin)
+        total_expenses = sum(b.get("expenses", 0) for b in fin)
+        total_compensation = sum(b.get("compensation", 0) for b in fin)
         net_profit = total_income - total_expenses + total_compensation
 
         col1, col2, col3, col4 = st.columns(4)
@@ -441,9 +438,9 @@ with tabs[3]:
         ]
 
         if month_data:
-            m_income = sum(b["price"] for b in month_data)
-            m_expenses = sum(b["expenses"] for b in month_data)
-            m_comp = sum(b["compensation"] for b in month_data)
+            m_income = sum(b.get("price", 0) for b in month_data)
+            m_expenses = sum(b.get("expenses", 0) for b in month_data)
+            m_comp = sum(b.get("compensation", 0) for b in month_data)
             m_net = m_income - m_expenses + m_comp
 
             st.write(f"**💵 الدخل:** {m_income} ريال")
@@ -455,6 +452,8 @@ with tabs[3]:
             st.dataframe(pd.DataFrame(month_data))
         else:
             st.info("لا توجد بيانات لهذا الشهر")
+
+
 # =========================================================
 # ⚙️ التبويب الخامس: الإعدادات
 # =========================================================
@@ -492,7 +491,7 @@ with tabs[4]:
         st.markdown("---")
 
         # -------------------------------------------------
-        # 3) إعدادات الخلفية (شفافة + رفع صورة + رابط صورة + إزالة)
+        # 3) إعدادات الخلفية
         # -------------------------------------------------
         st.markdown("### 🎨 إعدادات الخلفية")
 
@@ -589,7 +588,7 @@ with tabs[4]:
         st.markdown("---")
 
         # -------------------------------------------------
-        # 7) حذف حجز برقم ID (للطوارئ)
+        # 7) حذف حجز برقم ID
         # -------------------------------------------------
         st.markdown("### 🗑️ حذف حجز برقم ID")
 
@@ -598,15 +597,11 @@ with tabs[4]:
         if st.button("❌ حذف الحجز"):
             supabase.table("bookings").delete().eq("id", del_id).execute()
             st.success("تم حذف الحجز")
+
+
 # =========================================================
 # 🎉 نهاية الملف
 # =========================================================
 
 st.markdown("<hr>", unsafe_allow_html=True)
 st.markdown(
-    "<p style='text-align:center; opacity:0.6;'>"
-    "تم تطوير هذا النظام باستخدام Streamlit + Supabase<br>"
-    "جميع الحقوق محفوظة ©"
-    "</p>",
-    unsafe_allow_html=True
-)
