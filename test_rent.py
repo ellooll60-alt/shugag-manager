@@ -557,69 +557,67 @@ with tabs[4]:
     st.markdown(f"<div class='neon-sub'>عدد العمليات المالية: {len(fin)}</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     # =========================================================
-    # 📊 عرض الملخص المالي (إجمالي الإيرادات والمصاريف والصافي)
-    # =========================================================
-    if fin:
-        df_fin = pd.DataFrame(fin)
+# 📊 عرض الملخص المالي (إجمالي الإيرادات والمصاريف والصافي)
+# =========================================================
+if fin:
+    df_fin = pd.DataFrame(fin)
 
-        df_fin["price"] = df_fin["price"].fillna(0)
-df_fin["expenses"] = df_fin["expenses"].fillna(0)
-df_fin["compensations"] = df_fin["compensations"].fillna(0)
+    # إصلاح القيم الفارغة
+    df_fin["price"] = df_fin["price"].fillna(0)
+    df_fin["expenses"] = df_fin["expenses"].fillna(0)
+    df_fin["compensations"] = df_fin["compensations"].fillna(0)
 
-total_income = df_fin["price"].sum()
-total_expenses = df_fin["expenses"].sum()
-total_comp = df_fin["compensations"].sum()
+    total_income = df_fin["price"].sum()
+    total_expenses = df_fin["expenses"].sum()
+    total_comp = df_fin["compensations"].sum()
 
-net = total_income - total_expenses + total_comp
+    net = total_income - total_expenses + total_comp
 
+    c1, c2, c3, c4 = st.columns(4)
 
-c1, c2, c3, c4 = st.columns(4)
-
-with c1:
-            st.markdown(
-                "<div class='glass-metric'><div class='neon-sub'>إجمالي الإيرادات</div>"
-                f"<div class='neon-number'>{total_income}</div></div>",
-                unsafe_allow_html=True
-            )
-
-            with c2:
-st.markdown(
-                "<div class='glass-metric'><div class='neon-sub'>إجمالي المصاريف</div>"
-                f"<div class='neon-number'>{total_expenses}</div></div>",
-                unsafe_allow_html=True
-            )
-
-        with c3:
-            st.markdown(
-                "<div class='glass-metric'><div class='neon-sub'>إجمالي التعويضات</div>"
-                f"<div class='neon-number'>{total_comp}</div></div>",
-                unsafe_allow_html=True
-            )
-
-        with c4:
-            st.markdown(
-                "<div class='glass-metric'><div class='neon-sub'>صافي الربح</div>"
-                f"<div class='neon-number'>{net}</div></div>",
-                unsafe_allow_html=True
-            )
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # جدول العمليات المالية
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.dataframe(
-            df_fin[[
-                "id", "unit_no", "client_name", "check_in",
-                "check_out", "price", "expenses", "compensations"
-            ]],
-            use_container_width=True
+    with c1:
+        st.markdown(
+            "<div class='glass-metric'><div class='neon-sub'>إجمالي الإيرادات</div>"
+            f"<div class='neon-number'>{total_income}</div></div>",
+            unsafe_allow_html=True
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
-    else:
-        st.info("لا توجد بيانات مالية ضمن الفترة المحددة.")
+    with c2:
+        st.markdown(
+            "<div class='glass-metric'><div class='neon-sub'>إجمالي المصاريف</div>"
+            f"<div class='neon-number'>{total_expenses}</div></div>",
+            unsafe_allow_html=True
+        )
+
+    with c3:
+        st.markdown(
+            "<div class='glass-metric'><div class='neon-sub'>إجمالي التعويضات</div>"
+            f"<div class='neon-number'>{total_comp}</div></div>",
+            unsafe_allow_html=True
+        )
+
+    with c4:
+        st.markdown(
+            "<div class='glass-metric'><div class='neon-sub'>صافي الربح</div>"
+            f"<div class='neon-number'>{net}</div></div>",
+            unsafe_allow_html=True
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
+
+    # جدول العمليات المالية
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.dataframe(
+        df_fin[[
+            "id", "unit_no", "client_name", "check_in",
+            "check_out", "price", "expenses", "compensations"
+        ]],
+        use_container_width=True
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+else:
+    st.info("لا توجد بيانات مالية ضمن الفترة المحددة.")
 
     # =========================================================
     # 🧾 فواتير PDF لكل عملية
