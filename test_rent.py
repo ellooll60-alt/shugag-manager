@@ -497,6 +497,26 @@ with tabs[4]:
         # -------------------------------------------------
         # 7) حذف حجز برقم ID (للطوارئ)
         # -------------------------------------------------
+        # -------------------------------------------------
+# 8) إصلاح السجلات القديمة (إضافة status)
+# -------------------------------------------------
+st.markdown("### 🛠️ إصلاح السجلات القديمة")
+
+if st.button("🔧 إصلاح السجلات بدون status"):
+    old_res = supabase.table("bookings").select("*").execute()
+    old_data = old_res.data if old_res.data else []
+
+    fixed_count = 0
+
+    for b in old_data:
+        if "status" not in b or b["status"] in [None, ""]:
+            supabase.table("bookings").update({
+                "status": "مشغول"
+            }).eq("id", b["id"]).execute()
+            fixed_count += 1
+
+    st.success(f"تم إصلاح {fixed_count} سجل قديم بنجاح")
+
         st.markdown("### 🗑️ حذف حجز برقم ID")
 
         del_id = st.number_input("رقم الحجز", min_value=1)
