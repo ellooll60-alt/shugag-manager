@@ -280,7 +280,12 @@ with tabs[2]:
 
     # عرض الحجوزات
     for b in all_bookings:
-        with st.expander(f"📌 {b['unit']} — {b['guest']} — {b['check_in']} → {b['check_out']}"):
+        with st.expander(
+    f"📌 {b.get('unit', 'غير محدد')} — "
+    f"{b.get('guest', 'غير معروف')} — "
+    f"{b.get('check_in', 'غير مسجل')} → {b.get('check_out', 'غير مسجل')}"
+):
+
             st.write(f"**العميل:** {b['guest']}")
             st.write(f"**الهاتف:** {b['phone']}")
             st.write(f"**المنصة:** {b['platform']}")
