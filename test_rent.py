@@ -220,16 +220,23 @@ with tabs[2]:
         ]
 
     st.markdown("### 🔔 حجوزات يقترب خروجها")
-    near_exit = [
-        b for b in all_bookings
-        if datetime.strptime(b["check_out"], "%Y-%m-%d").date() <= today + timedelta(days=1)
-    ]
 
-    if near_exit:
-        for b in near_exit:
-            st.warning(f"الوحدة {b['unit']} — العميل {b['guest']} — الخروج {b['check_out']}")
-    else:
-        st.info("لا توجد حجوزات قريبة الخروج")
+near_exit = []
+for b in all_bookings:
+    try:
+        co = datetime.strptime(b["check_out"], "%Y-%m-%d").date()
+        if co <= today + timedelta(days=1):
+            near_exit.append(b)
+    except:
+        # تجاهل السجلات التي تحتوي على تاريخ غير صالح
+        pass
+
+if near_exit:
+    for b in near_exit:
+        st.warning(f"الوحدة {b.get('unit','غير محدد')} — العميل {b.get('guest','غير معروف')} — الخروج {b.get('check_out','غير مسجل')}")
+else:
+    st.info("لا توجد حجوزات قريبة الخروج")
+
 
     st.markdown("---")
 
