@@ -148,14 +148,19 @@ else:
                 st.rerun()
 
     # --- التبويب 3: السجل العام ---
-    with tabs[2]:
-        st.subheader("📋 سجل الحجوزات")
-        search = st.text_input("🔍 بحث بالاسم أو الهاتف")
+  with tabs[2]:
+    st.subheader("📋 سجل الحجوزات")
+    search = st.text_input("🔍 بحث بالاسم أو الهاتف")
 
-        res = supabase.table("bookings").insert(data).execute()
-st.write(res)
+    bookings = supabase.table("bookings").select("*").execute().data
+    df = pd.DataFrame(bookings)
 
-        df = pd.DataFrame(bookings)
+    if not df.empty:
+        if search:
+            df = df[df['client_name'].str.contains(search) | df['phone'].str.contains(search)]
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.info("لا توجد حجوزات")
 
         if not df.empty:
             if search:
