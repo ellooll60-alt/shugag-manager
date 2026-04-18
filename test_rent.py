@@ -678,4 +678,5 @@ with tabs[5]:
                 upsert_setting("logo_path", logo_in)
                 upsert_setting("background_image", bg_in)
 
-                st.success("✅ تم
+                st.success("✅ تم تحديث الإعدادات، يرجى إعادة تحميل الصفحة.")
+
