@@ -82,7 +82,7 @@ with c_title:
         )
 
         with c_logo:
-     if logo_url:
+      if logo_url:
             st.image(logo_url, width=110)
 
     st.markdown("<hr style='margin-top:0.5rem; margin-bottom:1rem;'>", unsafe_allow_html=True)
