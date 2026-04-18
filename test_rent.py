@@ -15,28 +15,28 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 # =========================
 # 2) تهيئة الجلسة
 # =========================
-if 'logged_in' not in st.session_state:
+if "logged_in" not in st.session_state:
     st.session_state.update({
-        'logged_in': False,
-        'user_name': "",
-        'user_role': "",
-        'selected_unit': None,
-        'edit_booking': None
+        "logged_in": False,
+        "user_name": "",
+        "user_role": "",
+        "selected_unit": None,
+        "edit_booking": None
     })
 
 # =========================
-# 3) تحميل الإعدادات من قاعدة البيانات
+# 3) تحميل الإعدادات من Supabase
 # =========================
 def load_settings():
     try:
         res = supabase.table("settings").select("*").execute()
         data = res.data or []
-        settings = {row["key"]: row["value"] for row in data}
-        return settings
-    except Exception:
+        return {row["key"]: row["value"] for row in data}
+    except:
         return {}
 
 settings = load_settings()
+
 app_name = settings.get("app_name", "نظام إدارة الوحدات")
 logo_url = settings.get("logo_path", "")
 background_image = settings.get("background_image", "")
@@ -44,7 +44,7 @@ background_image = settings.get("background_image", "")
 st.set_page_config(page_title=app_name, layout="wide")
 
 # =========================
-# 4) الخلفية
+# 4) الخلفية الثابتة
 # =========================
 if background_image:
     st.markdown(
@@ -66,32 +66,15 @@ if background_image:
         """,
         unsafe_allow_html=True
     )
-else:
-    st.markdown(
-        """
-        <style>
-        .stApp {
-            background: rgba(255, 255, 255, 0.35);
-        }
-        .block-container {
-            background: rgba(255, 255, 255, 0.55);
-            backdrop-filter: blur(12px);
-            border-radius: 18px;
-            padding: 2rem 2.5rem;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
 
 # =========================
-# 5) الهيدر العلوي (الشعار + العنوان)
+# 5) الهيدر العلوي
 # =========================
 c_logo, c_title, c_empty = st.columns([2, 5, 1])
 
 with c_title:
     st.markdown(
-        f"<h1 style='text-align:center; color:#111827; margin-bottom:0.5rem;'>{app_name}</h1>",
+        f"<h1 style='text-align:center; color:#111827;'>{app_name}</h1>",
         unsafe_allow_html=True
     )
 
@@ -99,7 +82,7 @@ with c_logo:
     if logo_url:
         st.image(logo_url, width=110)
 
-st.markdown("<hr style='margin-top:0.5rem; margin-bottom:1rem;'>", unsafe_allow_html=True)
+st.markdown("<hr>", unsafe_allow_html=True)
 
 # =========================
 # 6) تسجيل الدخول / الخروج
@@ -128,18 +111,15 @@ else:
         st.session_state.edit_booking = None
         st.experimental_rerun()
 
-# إذا لم يكن مسجلاً الدخول، لا نعرض التبويبات
+# إذا لم يسجل الدخول → توقف
 if not st.session_state.logged_in:
     st.stop()
 
 # =========================
 # 7) تحميل البيانات الأساسية
 # =========================
-units_res = supabase.table("units_names").select("name").execute()
-units = [r["name"] for r in (units_res.data or [])]
-
-plats_res = supabase.table("platforms").select("name").execute()
-plats = [r["name"] for r in (plats_res.data or [])]
+units = [r["name"] for r in (supabase.table("units_names").select("name").execute().data or [])]
+plats = [r["name"] for r in (supabase.table("platforms").select("name").execute().data or [])]
 
 today = date.today()
 
@@ -160,15 +140,9 @@ tabs = st.tabs([
 with tabs[0]:
     st.subheader("📊 حالة الوحدات")
 
-    bookings_res = supabase.table("bookings").select("*").execute()
-    bookings = bookings_res.data if bookings_res.data else []
+    bookings = supabase.table("bookings").select("*").execute().data or []
 
-    occupied_units = [
-        b.get("unit")
-        for b in bookings
-        if b.get("status", "مشغول") == "مشغول" and b.get("unit")
-    ]
-
+    occupied_units = [b["unit"] for b in bookings if b.get("status") == "مشغول"]
     free_units = [u for u in units if u not in occupied_units]
 
     col1, col2 = st.columns(2)
@@ -181,7 +155,7 @@ with tabs[0]:
                     st.session_state.selected_unit = u
                     st.experimental_rerun()
         else:
-            st.info("لا توجد وحدات شاغرة حالياً")
+            st.info("لا توجد وحدات شاغرة")
 
     with col2:
         st.markdown("### 🔴 الوحدات المشغولة")
@@ -192,7 +166,7 @@ with tabs[0]:
                     st.success(f"تم إخلاء الوحدة {u}")
                     st.experimental_rerun()
         else:
-            st.info("لا توجد وحدات مشغولة حالياً")
+            st.info("لا توجد وحدات مشغولة")
 
 # =========================================================
 # ➕ التبويب الثاني: إضافة حجز جديد
@@ -200,21 +174,19 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("➕ إضافة حجز جديد")
 
-    with st.form("new_booking_form"):
-        unit = st.selectbox("اختر الوحدة", units)
-        platform = st.selectbox("منصة الحجز", plats)
+    with st.form("new_booking"):
+        unit = st.selectbox("الوحدة", units)
+        platform = st.selectbox("المنصة", plats)
         guest = st.text_input("اسم العميل")
         phone = st.text_input("رقم الهاتف")
-        check_in = st.date_input("تاريخ الدخول", date.today())
-        check_out = st.date_input("تاريخ الخروج", date.today() + timedelta(days=1))
+        check_in = st.date_input("الدخول", today)
+        check_out = st.date_input("الخروج", today + timedelta(days=1))
         price = st.number_input("السعر", min_value=0)
         expenses = st.number_input("المصاريف", min_value=0)
         compensation = st.number_input("التعويضات", min_value=0)
         notes = st.text_area("ملاحظات")
 
-        submitted = st.form_submit_button("💾 حفظ الحجز")
-
-        if submitted:
+        if st.form_submit_button("💾 حفظ"):
             supabase.table("bookings").insert({
                 "unit": unit,
                 "platform": platform,
@@ -228,8 +200,7 @@ with tabs[1]:
                 "notes": notes,
                 "status": "مشغول"
             }).execute()
-
-            st.success("تم إضافة الحجز بنجاح")
+            st.success("تمت إضافة الحجز")
             st.experimental_rerun()
 
 # =========================================================
@@ -238,10 +209,9 @@ with tabs[1]:
 with tabs[2]:
     st.subheader("📋 السجل العام")
 
-    all_res = supabase.table("bookings").select("*").order("id", desc=True).execute()
-    all_bookings = all_res.data if all_res.data else []
+    all_bookings = supabase.table("bookings").select("*").order("id", desc=True).execute().data or []
 
-    search = st.text_input("🔍 بحث بالاسم أو رقم الهاتف")
+    search = st.text_input("🔍 بحث بالاسم أو الهاتف")
 
     if search:
         all_bookings = [
@@ -249,44 +219,33 @@ with tabs[2]:
             if search in b.get("guest", "") or search in b.get("phone", "")
         ]
 
-    st.markdown("### 🔔 حجوزات يقترب موعد خروجها")
+    st.markdown("### 🔔 حجوزات يقترب خروجها")
     near_exit = [
         b for b in all_bookings
-        if datetime.strptime(b["check_out"], "%Y-%m-%d").date()
-        <= date.today() + timedelta(days=1)
+        if datetime.strptime(b["check_out"], "%Y-%m-%d").date() <= today + timedelta(days=1)
     ]
 
     if near_exit:
         for b in near_exit:
-            st.warning(
-                f"الوحدة {b.get('unit', 'غير محدد')} — "
-                f"العميل {b.get('guest', 'غير معروف')} — "
-                f"الخروج: {b.get('check_out', 'غير مسجل')}"
-            )
+            st.warning(f"الوحدة {b['unit']} — العميل {b['guest']} — الخروج {b['check_out']}")
     else:
-        st.info("لا توجد حجوزات يقترب موعد خروجها")
+        st.info("لا توجد حجوزات قريبة الخروج")
 
     st.markdown("---")
 
     for b in all_bookings:
-        with st.expander(
-            f"📌 {b.get('unit', 'غير محدد')} — "
-            f"{b.get('guest', 'غير معروف')} — "
-            f"{b.get('check_in', 'غير مسجل')} → {b.get('check_out', 'غير مسجل')}"
-        ):
-            st.write(f"**العميل:** {b.get('guest', '')}")
-            st.write(f"**الهاتف:** {b.get('phone', '')}")
-            st.write(f"**المنصة:** {b.get('platform', '')}")
-            st.write(f"**السعر:** {b.get('price', 0)}")
-            st.write(f"**المصاريف:** {b.get('expenses', 0)}")
-            st.write(f"**التعويضات:** {b.get('compensation', 0)}")
-            st.write(f"**ملاحظات:** {b.get('notes', '')}")
+        with st.expander(f"📌 {b['unit']} — {b['guest']}"):
+            st.write(f"**الهاتف:** {b['phone']}")
+            st.write(f"**المنصة:** {b['platform']}")
+            st.write(f"**السعر:** {b['price']}")
+            st.write(f"**المصاريف:** {b['expenses']}")
+            st.write(f"**التعويضات:** {b['compensation']}")
+            st.write(f"**ملاحظات:** {b['notes']}")
 
             colA, colB, colC = st.columns(3)
 
             with colA:
-                msg = f"مرحباً {b['guest']}، نذكرك بأن موعد خروجك من الوحدة {b['unit']} هو {b['check_out']}."
-                wa = f"https://wa.me/{b['phone']}?text={msg}"
+                wa = f"https://wa.me/{b['phone']}?text=مرحباً {b['guest']}"
                 st.markdown(f"[📱 واتساب]({wa})")
 
             with colB:
@@ -301,23 +260,21 @@ with tabs[2]:
                     st.experimental_rerun()
 
     if st.session_state.edit_booking:
-        st.markdown("## ✏️ تعديل الحجز")
         edit = st.session_state.edit_booking
+        st.markdown("## ✏️ تعديل الحجز")
 
         with st.form("edit_form"):
             unit = st.selectbox("الوحدة", units, index=units.index(edit["unit"]))
-            guest = st.text_input("اسم العميل", edit["guest"])
-            phone = st.text_input("رقم الهاتف", edit["phone"])
-            check_in = st.date_input("تاريخ الدخول", datetime.strptime(edit["check_in"], "%Y-%m-%d"))
-            check_out = st.date_input("تاريخ الخروج", datetime.strptime(edit["check_out"], "%Y-%m-%d"))
+            guest = st.text_input("العميل", edit["guest"])
+            phone = st.text_input("الهاتف", edit["phone"])
+            check_in = st.date_input("الدخول", datetime.strptime(edit["check_in"], "%Y-%m-%d"))
+            check_out = st.date_input("الخروج", datetime.strptime(edit["check_out"], "%Y-%m-%d"))
             price = st.number_input("السعر", min_value=0, value=edit["price"])
             expenses = st.number_input("المصاريف", min_value=0, value=edit["expenses"])
             compensation = st.number_input("التعويضات", min_value=0, value=edit["compensation"])
             notes = st.text_area("ملاحظات", edit["notes"])
 
-            save_edit = st.form_submit_button("💾 حفظ التعديلات")
-
-            if save_edit:
+            if st.form_submit_button("💾 حفظ"):
                 supabase.table("bookings").update({
                     "unit": unit,
                     "guest": guest,
@@ -330,7 +287,7 @@ with tabs[2]:
                     "notes": notes
                 }).eq("id", edit["id"]).execute()
 
-                st.success("تم تحديث الحجز")
+                st.success("تم التحديث")
                 st.session_state.edit_booking = None
                 st.experimental_rerun()
 
@@ -340,89 +297,58 @@ with tabs[2]:
 with tabs[3]:
     st.subheader("💰 التقارير المالية")
 
-    fin_res = supabase.table("bookings").select("*").execute()
-    fin = fin_res.data if fin_res.data else []
+    fin = supabase.table("bookings").select("*").execute().data or []
 
     if not fin:
-        st.info("لا توجد بيانات مالية حالياً")
+        st.info("لا توجد بيانات مالية")
     else:
-        total_income = sum(b.get("price", 0) for b in fin)
-        total_expenses = sum(b.get("expenses", 0) for b in fin)
-        total_compensation = sum(b.get("compensation", 0) for b in fin)
-        net_profit = total_income - total_expenses + total_compensation
+        total_income = sum(b["price"] for b in fin)
+        total_expenses = sum(b["expenses"] for b in fin)
+        total_comp = sum(b["compensation"] for b in fin)
+        net = total_income - total_expenses + total_comp
 
         col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            st.metric("💵 إجمالي الدخل", f"{total_income} ريال")
-
-        with col2:
-            st.metric("💸 إجمالي المصاريف", f"{total_expenses} ريال")
-
-        with col3:
-            st.metric("⚠️ التعويضات", f"{total_compensation} ريال")
-
-        with col4:
-            st.metric("📈 صافي الربح", f"{net_profit} ريال")
+        col1.metric("💵 الدخل", total_income)
+        col2.metric("💸 المصاريف", total_expenses)
+        col3.metric("⚠️ التعويضات", total_comp)
+        col4.metric("📈 الصافي", net)
 
         st.markdown("---")
 
-        st.markdown("### 📅 تقرير شهري")
-
-        months = sorted(
-            list(
-                set(
-                    datetime.strptime(b["check_in"], "%Y-%m-%d").strftime("%Y-%m")
-                    for b in fin
-                )
-            )
-        )
+        months = sorted(list(set(
+            datetime.strptime(b["check_in"], "%Y-%m-%d").strftime("%Y-%m")
+            for b in fin
+        )))
 
         if months:
-            selected_month = st.selectbox("اختر الشهر", months)
-
+            selected = st.selectbox("اختر الشهر", months)
             month_data = [
                 b for b in fin
-                if datetime.strptime(b["check_in"], "%Y-%m-%d").strftime("%Y-%m") == selected_month
+                if datetime.strptime(b["check_in"], "%Y-%m-%d").strftime("%Y-%m") == selected
             ]
 
             if month_data:
-                m_income = sum(b.get("price", 0) for b in month_data)
-                m_expenses = sum(b.get("expenses", 0) for b in month_data)
-                m_comp = sum(b.get("compensation", 0) for b in month_data)
-                m_net = m_income - m_expenses + m_comp
-
-                st.write(f"**💵 الدخل:** {m_income} ريال")
-                st.write(f"**💸 المصاريف:** {m_expenses} ريال")
-                st.write(f"**⚠️ التعويضات:** {m_comp} ريال")
-                st.write(f"**📈 الصافي:** {m_net} ريال")
-
-                st.markdown("#### تفاصيل العمليات")
                 st.dataframe(pd.DataFrame(month_data))
             else:
                 st.info("لا توجد بيانات لهذا الشهر")
-        else:
-            st.info("لا توجد بيانات مالية بعد")
 
 # =========================================================
 # ⚙️ التبويب الخامس: الإعدادات
 # =========================================================
 with tabs[4]:
     if st.session_state.user_role != "admin":
-        st.error("❌ هذه الصفحة مخصصة للمدير فقط")
+        st.error("❌ هذه الصفحة للمدير فقط")
     else:
         st.subheader("⚙️ إعدادات النظام")
 
-        st.markdown("### 📝 تغيير اسم البرنامج")
         new_name = st.text_input("اسم البرنامج", value=app_name)
         if st.button("💾 حفظ الاسم"):
             supabase.table("settings").upsert({"key": "app_name", "value": new_name}).execute()
-            st.success("تم تحديث اسم البرنامج")
+            st.success("تم تحديث الاسم")
             st.experimental_rerun()
 
         st.markdown("---")
 
-        st.markdown("### 🖼️ تغيير الشعار")
         new_logo = st.text_input("رابط الشعار", value=logo_url)
         if st.button("💾 حفظ الشعار"):
             supabase.table("settings").upsert({"key": "logo_path", "value": new_logo}).execute()
@@ -431,62 +357,43 @@ with tabs[4]:
 
         st.markdown("---")
 
-        st.markdown("### 🎨 إعدادات الخلفية")
-        st.info("الخلفية الافتراضية: شفافة (Light Glass Mode)")
-
-        bg_file = st.file_uploader("رفع صورة خلفية (JPG / PNG)", type=["jpg", "jpeg", "png"])
-        if bg_file:
-            bg_bytes = bg_file.read()
-            bg_base64 = base64.b64encode(bg_bytes).decode()
-            bg_url = f"data:image/png;base64,{bg_base64}"
-            if st.button("💾 حفظ الخلفية المرفوعة"):
-                supabase.table("settings").upsert({"key": "background_image", "value": bg_url}).execute()
-                st.success("تم تحديث الخلفية")
-                st.experimental_rerun()
-
-        bg_link = st.text_input("أو ضع رابط صورة خلفية", value=background_image)
-        if st.button("💾 حفظ رابط الخلفية"):
+        bg_link = st.text_input("رابط الخلفية", value=background_image)
+        if st.button("💾 حفظ الخلفية"):
             supabase.table("settings").upsert({"key": "background_image", "value": bg_link}).execute()
             st.success("تم تحديث الخلفية")
             st.experimental_rerun()
 
-        if st.button("🗑️ إزالة الخلفية والعودة للوضع الشفاف"):
+        if st.button("🗑️ إزالة الخلفية"):
             supabase.table("settings").upsert({"key": "background_image", "value": ""}).execute()
             st.success("تمت إزالة الخلفية")
             st.experimental_rerun()
 
         st.markdown("---")
 
-        st.markdown("### 🏠 إضافة وحدة جديدة")
-        new_unit = st.text_input("اسم الوحدة الجديدة")
+        new_unit = st.text_input("إضافة وحدة جديدة")
         if st.button("➕ إضافة الوحدة"):
             if new_unit:
                 supabase.table("units_names").insert({"name": new_unit}).execute()
-                st.success("تمت إضافة الوحدة")
+                st.success("تمت الإضافة")
                 st.experimental_rerun()
             else:
-                st.error("الرجاء إدخال اسم الوحدة")
+                st.error("أدخل اسم الوحدة")
 
         st.markdown("---")
 
-        st.markdown("### 🌐 إضافة منصة جديدة")
-        new_platform = st.text_input("اسم المنصة الجديدة")
+        new_platform = st.text_input("إضافة منصة جديدة")
         if st.button("➕ إضافة المنصة"):
             if new_platform:
                 supabase.table("platforms").insert({"name": new_platform}).execute()
-                st.success("تمت إضافة المنصة")
+                st.success("تمت الإضافة")
                 st.experimental_rerun()
             else:
-                st.error("الرجاء إدخال اسم المنصة")
+                st.error("أدخل اسم المنصة")
 
         st.markdown("---")
 
-        st.markdown("### 👤 إضافة مستخدم جديد")
-        col_u1, col_u2 = st.columns(2)
-        with col_u1:
-            new_user = st.text_input("اسم المستخدم الجديد")
-        with col_u2:
-            new_pass = st.text_input("كلمة المرور", type="password")
+        new_user = st.text_input("اسم مستخدم جديد")
+        new_pass = st.text_input("كلمة المرور", type="password")
         new_role = st.selectbox("الصلاحية", ["admin", "user"])
 
         if st.button("➕ إضافة المستخدم"):
@@ -496,26 +403,15 @@ with tabs[4]:
                     "password": new_pass,
                     "role": new_role
                 }).execute()
-                st.success("تمت إضافة المستخدم")
+                st.success("تمت الإضافة")
             else:
-                st.error("الرجاء إدخال جميع البيانات")
-
-        st.markdown("---")
-
-        st.markdown("### 🗑️ حذف حجز برقم ID")
-        del_id = st.number_input("رقم الحجز", min_value=1)
-        if st.button("❌ حذف الحجز"):
-            supabase.table("bookings").delete().eq("id", del_id).execute()
-            st.success("تم حذف الحجز")
+                st.error("أدخل جميع البيانات")
 
 # =========================
 # نهاية الملف
 # =========================
 st.markdown("<hr>", unsafe_allow_html=True)
 st.markdown(
-    "<p style='text-align:center; opacity:0.6;'>"
-    "تم تطوير هذا النظام باستخدام Streamlit + Supabase<br>"
-    "جميع الحقوق محفوظة ©"
-    "</p>",
+    "<p style='text-align:center; opacity:0.6;'>تم تطوير النظام باستخدام Streamlit + Supabase</p>",
     unsafe_allow_html=True
 )
