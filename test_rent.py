@@ -152,7 +152,9 @@ else:
         st.subheader("📋 سجل الحجوزات")
         search = st.text_input("🔍 بحث بالاسم أو الهاتف")
 
-        bookings = supabase.table("bookings").select("*").execute().data
+        res = supabase.table("bookings").insert(data).execute()
+st.write(res)
+
         df = pd.DataFrame(bookings)
 
         if not df.empty:
