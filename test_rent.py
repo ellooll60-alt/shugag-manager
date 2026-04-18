@@ -23,13 +23,8 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ============================================
-# 📌 تهيئة الجلسة Session State
+# 📌 تهيئة الجلسة
 # ============================================
-
-# 🔥 استخدمه مرة واحدة فقط لإصلاح التجمّد
-# ثم احذفه
-# st.session_state.clear()
-
 if "logged_in" not in st.session_state:
     st.session_state.update({
         "logged_in": False,
@@ -39,7 +34,6 @@ if "logged_in" not in st.session_state:
         "edit_booking": None,
         "edit_financial": None
     })
-})
 
 
 # ============================================
