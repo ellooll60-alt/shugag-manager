@@ -149,7 +149,7 @@ else:
 
     # --- التبويب 3: السجل العام ---
     with tabs[2]:
-    st.subheader("📋 سجل الحجوزات")
+        st.subheader("📋 سجل الحجوزات")
     search = st.text_input("🔍 بحث بالاسم أو الهاتف")
 
     bookings = supabase.table("bookings").select("*").execute().data
