@@ -267,7 +267,12 @@ with tabs[2]:
 
     if near_exit:
         for b in near_exit:
-            st.warning(f"الوحدة {b['unit']} — العميل {b['guest']} — الخروج: {b['check_out']}")
+            st.warning(
+    f"الوحدة {b.get('unit', 'غير محدد')} — "
+    f"العميل {b.get('guest', 'غير معروف')} — "
+    f"الخروج: {b.get('check_out', 'غير مسجل')}"
+)
+
     else:
         st.info("لا توجد حجوزات يقترب موعد خروجها")
 
