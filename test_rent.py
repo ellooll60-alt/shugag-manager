@@ -155,10 +155,8 @@ with tabs[0]:
     # جلب الحجوزات الحالية
     bookings_res = supabase.table("bookings").select("*").execute()
     bookings = bookings_res.data if bookings_res.data else []
-    
-    occupied_units = [b["unit"] for b in bookings if b.get("status", "مشغول") == "مشغول"]
 
-
+    occupied_units = [b["unit"] for b in bookings if b["status"] == "مشغول"]
     free_units = [u for u in units if u not in occupied_units]
 
     col1, col2 = st.columns(2)
@@ -216,8 +214,7 @@ with tabs[1]:
                 "expenses": expenses,
                 "compensation": compensation,
                 "notes": notes,
-                b.get("status", "مشغول")
-
+                "status": "مشغول"
             }).execute()
 
             st.success("تم إضافة الحجز بنجاح")
@@ -500,39 +497,13 @@ with tabs[4]:
         # -------------------------------------------------
         # 7) حذف حجز برقم ID (للطوارئ)
         # -------------------------------------------------
-        # -------------------------------------------------
-# 8) إصلاح السجلات القديمة (إضافة status)
-# -------------------------------------------------
-        st.markdown("### 🗑️ حذف حجز برقم ID")# -------------------------------------------------
-# 8) إصلاح السجلات القديمة (إضافة status)
-# -------------------------------------------------
-st.markdown("### 🛠️ إصلاح السجلات القديمة")
+        st.markdown("### 🗑️ حذف حجز برقم ID")
 
-if st.button("🔧 إصلاح السجلات بدون status"):
-    old_res = supabase.table("bookings").select("*").execute()
-    old_data = old_res.data if old_res.data else []
+        del_id = st.number_input("رقم الحجز", min_value=1)
 
-    fixed_count = 0
-
-    for b in old_data:
-        if "status" not in b or b["status"] in [None, ""]:
-            supabase.table("bookings").update({
-                "status": "مشغول"
-            }).eq("id", b["id"]).execute()
-            fixed_count += 1
-
-    st.success(f"تم إصلاح {fixed_count} سجل قديم بنجاح")
-
-# 7) حذف حجز برقم ID (للطوارئ)
-# -------------------------------------------------
-st.markdown("### 🗑️ حذف حجز برقم ID")
-
-del_id = st.number_input("رقم الحجز", min_value=1)
-
-if st.button("❌ حذف الحجز"):
-    supabase.table("bookings").delete().eq("id", del_id).execute()
-    st.success("تم حذف الحجز")
-
+        if st.button("❌ حذف الحجز"):
+            supabase.table("bookings").delete().eq("id", del_id).execute()
+            st.success("تم حذف الحجز")
 # =========================================================
 # 🎉 نهاية الملف
 # =========================================================
@@ -545,5 +516,3 @@ st.markdown(
     "</p>",
     unsafe_allow_html=True
 )
-
-
