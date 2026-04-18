@@ -562,7 +562,7 @@ with tabs[4]:
     if fin:
         df_fin = pd.DataFrame(fin)
 
-      df_fin["price"] = df_fin["price"].fillna(0)
+        df_fin["price"] = df_fin["price"].fillna(0)
 df_fin["expenses"] = df_fin["expenses"].fillna(0)
 df_fin["compensations"] = df_fin["compensations"].fillna(0)
 
