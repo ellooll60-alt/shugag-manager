@@ -148,6 +148,7 @@ with c_logo:
         st.image(logo_url, width=110)
 
 st.markdown("<hr>", unsafe_allow_html=True)
+st.session_state.clear()
 
 # ============================================
 # 📌 تسجيل الدخول
