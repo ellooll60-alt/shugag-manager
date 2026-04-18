@@ -701,29 +701,32 @@ else:
 # ⚙️ التبويب السادس: الإعدادات
 # =========================================================
 with tabs[5]:
+
     st.markdown("<div class='neon-title'>الإعدادات العامة للنظام</div>", unsafe_allow_html=True)
     st.markdown("<div class='neon-sub'>تعديل اسم النظام والشعار والخلفية.</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
-    if st.session_state.user_role is None or st.session_state.user_role.strip().lower() != "admin":
-    st.warning("هذه الصفحة متاحة للمدير فقط.")
-    st.stop()
-
+    # 🔐 السماح بالدخول للمدير فقط
+    if (
+        st.session_state.user_role is None 
+        or st.session_state.user_role.strip().lower() != "admin"
+    ):
         st.warning("هذه الصفحة متاحة للمدير فقط.")
-    else:
-        with st.form("settings_form"):
-            app_name_in = st.text_input("اسم النظام", value=settings.get("app_name", "نظام إدارة الوحدات"))
-            logo_in = st.text_input("رابط الشعار (logo_url)", value=settings.get("logo_path", ""))
-            bg_in = st.text_input("رابط صورة الخلفية (اختياري)", value=settings.get("background_image", ""))
+        st.stop()
 
-            if st.form_submit_button("💾 حفظ الإعدادات"):
+    # ✔ إذا كان المستخدم مديرًا، تظهر له الإعدادات
+    with st.form("settings_form"):
+        app_name_in = st.text_input("اسم النظام", value=settings.get("app_name", "نظام إدارة الوحدات"))
+        logo_in = st.text_input("رابط الشعار (logo_url)", value=settings.get("logo_path", ""))
+        bg_in = st.text_input("رابط صورة الخلفية (اختياري)", value=settings.get("background_image", ""))
 
-                def upsert_setting(k, v):
-                    supabase.table("settings").upsert({"key": k, "value": v}).execute()
+        if st.form_submit_button("💾 حفظ الإعدادات"):
 
-                upsert_setting("app_name", app_name_in)
-                upsert_setting("logo_path", logo_in)
-                upsert_setting("background_image", bg_in)
+            def upsert_setting(k, v):
+                supabase.table("settings").upsert({"key": k, "value": v}).execute()
 
-                st.success("✅ تم تحديث الإعدادات، يرجى إعادة تحميل الصفحة.")
+            upsert_setting("app_name", app_name_in)
+            upsert_setting("logo_path", logo_in)
+            upsert_setting("background_image", bg_in)
 
+            st.success("✅ تم تحديث الإعدادات، يرجى إعادة تحميل الصفحة.")
