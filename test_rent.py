@@ -582,7 +582,7 @@ with c1:
                 unsafe_allow_html=True
             )
 
-        with c2:
+            with c2:
             st.markdown(
                 "<div class='glass-metric'><div class='neon-sub'>إجمالي المصاريف</div>"
                 f"<div class='neon-number'>{total_expenses}</div></div>",
