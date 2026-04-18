@@ -705,7 +705,10 @@ with tabs[5]:
     st.markdown("<div class='neon-sub'>تعديل اسم النظام والشعار والخلفية.</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
-    if st.session_state.user_role != "admin":
+    if st.session_state.user_role is None or st.session_state.user_role.strip().lower() != "admin":
+    st.warning("هذه الصفحة متاحة للمدير فقط.")
+    st.stop()
+
         st.warning("هذه الصفحة متاحة للمدير فقط.")
     else:
         with st.form("settings_form"):
