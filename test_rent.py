@@ -19,7 +19,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 # =========================
 if "logged_in" not in st.session_state:
     st.session_state.update({
-        "logged_in": False,
+        "logged_logged": False,
         "user_name": "",
         "user_role": "",
         "selected_unit": None,
@@ -163,7 +163,7 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.user_name = res.data[0]["username"]
                 st.session_state.user_role = res.data[0]["role"]
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.sidebar.error("❌ بيانات خاطئة")
 else:
@@ -173,7 +173,7 @@ else:
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.session_state.logged_in = False
-        st.experimental_rerun()
+        st.rerun()
 
 if not st.session_state.logged_in:
     st.stop()
@@ -197,140 +197,6 @@ tabs = st.tabs([
     "💰 التقارير المالية",
     "⚙️ الإعدادات"
 ])
-
-# =========================================================
-# 🏠 التبويب الأول: الرئيسية (Dashboard)
-# =========================================================
-with tabs[0]:
-    st.markdown("<div class='neon-title'>لوحة التحكم الرئيسية</div>", unsafe_allow_html=True)
-    st.markdown(
-        "<div class='neon-sub'>نظرة سريعة على أداء الوحدات، الحجوزات، والإيرادات مع تنبيهات ذكية.</div>",
-        unsafe_allow_html=True
-    )
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    bookings = supabase.table("bookings").select("*").execute().data or []
-
-    total_units = len(units)
-    occupied_units = [b["unit_no"] for b in bookings if b.get("unit_no") and b.get("check_out")]
-    occupied_units = list(set(occupied_units))
-    free_units = [u for u in units if u not in occupied_units]
-
-    total_bookings = len(bookings)
-    today_bookings = [
-        b for b in bookings
-        if b.get("check_in") == str(today) or b.get("check_out") == str(today)
-    ]
-
-    total_income = sum(b.get("price", 0) for b in bookings)
-    total_expenses = sum(b.get("expenses", 0) for b in bookings)
-    total_comp = sum(b.get("compensations", 0) for b in bookings)
-    net = total_income - total_expenses + total_comp
-
-    c1, c2, c3, c4 = st.columns(4)
-
-    with c1:
-        st.markdown("<div class='glass-metric'>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-sub'>إجمالي الوحدات</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='neon-number'>{total_units}</div>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-pill'>كل الوحدات المسجلة</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with c2:
-        st.markdown("<div class='glass-metric'>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-sub'>الوحدات المشغولة الآن</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='neon-number'>{len(occupied_units)}</div>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-pill'>حجوزات فعّالة</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with c3:
-        st.markdown("<div class='glass-metric'>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-sub'>حجوزات اليوم</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='neon-number'>{len(today_bookings)}</div>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-pill'>دخول أو خروج اليوم</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with c4:
-        st.markdown("<div class='glass-metric'>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-sub'>صافي الإيراد الكلي</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='neon-number'>{net}</div>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-pill'>الدخل - المصاريف + التعويضات</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    col_left, col_right = st.columns([2, 1])
-
-    with col_left:
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-sub' style='margin-bottom:0.6rem;'>📈 الإيرادات الشهرية (Neon Blue)</div>", unsafe_allow_html=True)
-
-        if bookings:
-            df = pd.DataFrame(bookings)
-            try:
-                df["check_in_date"] = pd.to_datetime(df["check_in"])
-                df["month"] = df["check_in_date"].dt.to_period("M").astype(str)
-                monthly = df.groupby("month").agg(
-                    income=("price", "sum"),
-                    expenses=("expenses", "sum"),
-                    comp=("compensations", "sum")
-                ).reset_index()
-                monthly["net"] = monthly["income"] - monthly["expenses"] + monthly["comp"]
-
-                fig = px.line(
-                    monthly,
-                    x="month",
-                    y="net",
-                    markers=True,
-                    title="",
-                )
-                fig.update_traces(line_color="#38bdf8", line_width=3)
-                fig.update_layout(
-                    plot_bgcolor="rgba(15,23,42,0.0)",
-                    paper_bgcolor="rgba(15,23,42,0.0)",
-                    font_color="#e5e7eb",
-                    xaxis=dict(gridcolor="rgba(55,65,81,0.6)"),
-                    yaxis=dict(gridcolor="rgba(55,65,81,0.6)"),
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            except Exception as e:
-                st.info("لا توجد بيانات كافية لعرض الرسم البياني.")
-        else:
-            st.info("لا توجد بيانات مالية بعد.")
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col_right:
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-sub' style='margin-bottom:0.6rem;'>🔔 تنبيهات قريبة الخروج</div>", unsafe_allow_html=True)
-
-        near_exit = []
-        for b in bookings:
-            try:
-                co = datetime.strptime(b["check_out"], "%Y-%m-%d").date()
-                if today <= co <= today + timedelta(days=1):
-                    near_exit.append(b)
-            except:
-                pass
-
-        if near_exit:
-            for b in near_exit:
-                st.markdown(
-                    f"<div style='font-size:0.85rem; margin-bottom:0.4rem;'>"
-                    f"الوحدة <b>{b['unit_no']}</b> — {b['client_name']} — خروج: {b['check_out']}"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-                wa = f"https://wa.me/{b['phone']}?text=مرحباً {b['client_name']}، نذكرك بأن موعد خروجك من الوحدة {b['unit_no']} هو {b['check_out']}."
-                st.markdown(f"<a href='{wa}' target='_blank'>📱 إرسال تذكير واتساب</a>", unsafe_allow_html=True)
-                st.markdown("<hr style='margin:0.4rem 0;'>", unsafe_allow_html=True)
-        else:
-            st.markdown(
-                "<div style='font-size:0.85rem; color:#9ca3af;'>لا توجد حجوزات يقترب خروجها خلال 24 ساعة.</div>",
-                unsafe_allow_html=True
-            )
-
-        st.markdown("</div>", unsafe_allow_html=True)
 # =========================================================
 # 📊 التبويب الثاني: حالة الوحدات
 # =========================================================
@@ -508,21 +374,21 @@ with tabs[3]:
             with c1:
                 if st.button(f"✏️ تعديل الحجز {b['id']}", key=f"edit_booking_{b['id']}"):
                     st.session_state.edit_booking = b
-                    st.experimental_rerun()
+                    st.rerun()
 
             # زر حذف الحجز
             with c2:
                 if st.button(f"🗑️ حذف الحجز {b['id']}", key=f"del_booking_{b['id']}"):
                     supabase.table("bookings").delete().eq("id", b["id"]).execute()
                     st.error("تم حذف الحجز.")
-                    st.experimental_rerun()
+                    st.rerun()
 
-            # زر طباعة فاتورة PDF (سيتم تفعيله في جزء PDF في القسم المالي)
+            # زر طباعة فاتورة PDF (يُفعل في التقارير المالية)
             with c3:
-                st.info("🧾 طباعة الفاتورة ستكون متاحة من التقارير المالية.")
+                st.info("🧾 طباعة الفاتورة متاحة من التقارير المالية.")
 
     # نافذة تعديل الحجز
-    if "edit_booking" in st.session_state and st.session_state.edit_booking:
+    if st.session_state.edit_booking:
         b = st.session_state.edit_booking
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='neon-title'>تعديل الحجز</div>", unsafe_allow_html=True)
@@ -530,8 +396,8 @@ with tabs[3]:
         with st.form("edit_booking_form"):
             c1, c2, c3 = st.columns(3)
             with c1:
-                unit_no = st.selectbox("الوحدة", units, index=units.index(b["unit_no"]) if b["unit_no"] in units else 0)
-                platform = st.selectbox("المنصة", plats, index=plats.index(b["platform"]) if b["platform"] in plats else 0)
+                unit_no = st.selectbox("الوحدة", units, index=units.index(b["unit_no"]))
+                platform = st.selectbox("المنصة", plats, index=plats.index(b["platform"]))
                 client_name = st.text_input("اسم العميل", b["client_name"])
             with c2:
                 phone = st.text_input("رقم الجوال", b["phone"])
@@ -560,15 +426,14 @@ with tabs[3]:
                         "compensations": compensations,
                         "note": note
                     }).eq("id", b["id"]).execute()
-                    st.success("✅ تم تحديث الحجز بنجاح.")
-                    st.session_state.edit_booking = None
-                    st.experimental_rerun()
-from reportlab.pdfgen import canvas
+
+                    st.success("تم تحديث
+                    from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 
 # =========================================================
-# دالة إنشاء فاتورة PDF A4 (عربي + إنجليزي)
+# 🧾 دالة إنشاء فاتورة PDF A4 (عربي + إنجليزي)
 # =========================================================
 def generate_invoice_pdf(booking, settings):
     buffer = io.BytesIO()
@@ -576,7 +441,6 @@ def generate_invoice_pdf(booking, settings):
     width, height = A4
 
     app_name = settings.get("app_name", "نظام إدارة الوحدات")
-    logo_url = settings.get("logo_path", "")
 
     y = height - 40 * mm
 
@@ -613,7 +477,7 @@ def generate_invoice_pdf(booking, settings):
     c.drawString(30 * mm, y, f"Check-out / الخروج: {booking['check_out']}")
     y -= 10 * mm
 
-    # جدول مالي بسيط
+    # جدول مالي
     c.setFont("Helvetica-Bold", 11)
     c.drawString(30 * mm, y, "Financial Details / التفاصيل المالية")
     y -= 7 * mm
@@ -694,25 +558,17 @@ with tabs[4]:
 
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            st.markdown("<div class='glass-metric'>", unsafe_allow_html=True)
-            st.markdown("<div class='neon-sub'>إجمالي الإيرادات</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='neon-number'>{total_income}</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div class='glass-metric'><div class='neon-sub'>إجمالي الإيرادات</div>"
+                        f"<div class='neon-number'>{total_income}</div></div>", unsafe_allow_html=True)
         with c2:
-            st.markdown("<div class='glass-metric'>", unsafe_allow_html=True)
-            st.markdown("<div class='neon-sub'>إجمالي المصاريف</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='neon-number'>{total_expenses}</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div class='glass-metric'><div class='neon-sub'>إجمالي المصاريف</div>"
+                        f"<div class='neon-number'>{total_expenses}</div></div>", unsafe_allow_html=True)
         with c3:
-            st.markdown("<div class='glass-metric'>", unsafe_allow_html=True)
-            st.markmarkdown("<div class='neon-sub'>إجمالي التعويضات</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='neon-number'>{total_comp}</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div class='glass-metric'><div class='neon-sub'>إجمالي التعويضات</div>"
+                        f"<div class='neon-number'>{total_comp}</div></div>", unsafe_allow_html=True)
         with c4:
-            st.markdown("<div class='glass-metric'>", unsafe_allow_html=True)
-            st.markdown("<div class='neon-sub'>صافي الربح</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='neon-number'>{net}</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div class='glass-metric'><div class='neon-sub'>صافي الربح</div>"
+                        f"<div class='neon-number'>{net}</div></div>", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -764,15 +620,15 @@ with tabs[4]:
             with col1:
                 if st.button(f"✏️ تعديل العملية {b['id']}", key=f"edit_fin_{b['id']}"):
                     st.session_state.edit_financial = b
-                    st.experimental_rerun()
+                    st.rerun()
 
             with col2:
                 if st.button(f"🗑️ حذف العملية {b['id']}", key=f"del_fin_{b['id']}"):
                     supabase.table("bookings").delete().eq("id", b["id"]).execute()
                     st.error("تم حذف العملية المالية")
-                    st.experimental_rerun()
+                    st.rerun()
 
-    if "edit_financial" in st.session_state and st.session_state.edit_financial:
+    if st.session_state.edit_financial:
         b = st.session_state.edit_financial
         st.markdown("## ✏️ تعديل العملية المالية")
 
@@ -792,7 +648,7 @@ with tabs[4]:
 
                 st.success("تم تحديث العملية المالية")
                 st.session_state.edit_financial = None
-                st.experimental_rerun()
+                st.rerun()
 
 # =========================================================
 # ⚙️ التبويب السادس: الإعدادات
@@ -821,5 +677,4 @@ with tabs[5]:
                 upsert_setting("logo_path", logo_in)
                 upsert_setting("background_image", bg_in)
 
-                st.success("✅ تم تحديث الإعدادات، يرجى إعادة تحميل الصفحة.")
-
+                st.success("✅ تم
