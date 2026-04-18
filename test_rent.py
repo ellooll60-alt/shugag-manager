@@ -24,63 +24,50 @@ if 'logged_in' not in st.session_state:
         'background_image': None
     })
 
-# =========================
-# 3) تحميل الإعدادات من Supabase
-# =========================
-def get_settings():
-    try:
-        res = supabase.table("settings").select("*").execute()
-        return {row['key']: row['value'] for row in res.data} if res.data else {}
-    except:
-        return {}
+# =========================================================
+# ⚙️ التبويب الرابع: الإعدادات
+# =========================================================
+with tabs[3]:
+    st.subheader("⚙️ الإعدادات العامة")
 
-settings = get_settings()
-app_name = settings.get("app_name", "نظام إدارة الوحدات")
-logo_url = settings.get("logo_path", "")
-background_image = settings.get("background_image", "")
+    st.markdown("### 🛠️ إصلاح شامل للسجلات")
 
-st.set_page_config(page_title=app_name, layout="wide")
+    if st.button("إصلاح جميع السجلات الناقصة"):
+        bookings_res = supabase.table("bookings").select("*").execute()
+        bookings = bookings_res.data if bookings_res.data else []
 
-# =========================
-# 4) تصميم الخلفية (Light Glass Mode + دعم صورة Cover)
-# =========================
-if background_image:
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background-image: url('{background_image}');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }}
-        .block-container {{
-            background: rgba(255, 255, 255, 0.55);
-            backdrop-filter: blur(12px);
-            border-radius: 18px;
-            padding: 2rem 2.5rem;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-else:
-    st.markdown(
-        """
-        <style>
-        .stApp {
-            background: rgba(255, 255, 255, 0.35);
-        }
-        .block-container {
-            background: rgba(255, 255, 255, 0.55);
-            backdrop-filter: blur(12px);
-            border-radius: 18px;
-            padding: 2rem 2.5rem;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+        fixed_count = 0
+
+        for b in bookings:
+            update_data = {}
+
+            # إصلاح الحقول الناقصة
+            if "unit" not in b or not b["unit"]:
+                update_data["unit"] = "غير محدد"
+
+            if "guest" not in b or not b["guest"]:
+                update_data["guest"] = "غير معروف"
+
+            if "check_in" not in b or not b["check_in"]:
+                update_data["check_in"] = ""
+
+            if "check_out" not in b or not b["check_out"]:
+                update_data["check_out"] = ""
+
+            if "status" not in b or not b["status"]:
+                update_data["status"] = "مشغول"
+
+            if "price" not in b or not b["price"]:
+                update_data["price"] = 0
+
+            # تحديث السجل إذا كان يحتاج إصلاح
+            if update_data:
+                supabase.table("bookings").update(update_data).eq("id", b["id"]).execute()
+                fixed_count += 1
+
+        st.success(f"✔️ تم إصلاح {fixed_count} سجل بنجاح")
+        st.experimental_rerun()
+
 # =========================
 # 5) الهيدر العلوي (الشعار + العنوان)
 # =========================
