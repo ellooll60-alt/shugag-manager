@@ -114,6 +114,51 @@ with tabs[3]:
             st.session_state.edit_booking = None
             st.experimental_rerun()
 
+
+    # =========================
+    # الهيدر العلوي (الشعار + العنوان)
+    # =========================
+    c_logo, c_title, c_empty = st.columns([2, 5, 1])
+
+    with c_title:
+        st.markdown(
+            f"<h1 style='text-align:center; color:#111827; margin-bottom:0.5rem;'>{app_name}</h1>",
+            unsafe_allow_html=True
+        )
+
+    with c_logo:
+        if logo_url:
+            st.image(logo_url, width=110)
+
+    st.markdown("<hr style='margin-top:0.5rem; margin-bottom:1rem;'>", unsafe_allow_html=True)
+
+    # =========================
+    # تسجيل الدخول / الخروج
+    # =========================
+    if not st.session_state.logged_in:
+        st.sidebar.title("🔐 دخول النظام")
+        with st.sidebar.form("login_form"):
+            u = st.text_input("اسم المستخدم")
+            p = st.text_input("كلمة المرور", type="password")
+            if st.form_submit_button("دخول"):
+                res = supabase.table("users").select("*").eq("username", u).eq("password", p).execute()
+                if res.data:
+                    st.session_state.logged_in = True
+                    st.session_state.user_name = res.data[0]["username"]
+                    st.session_state.user_role = res.data[0]["role"]
+                    st.experimental_rerun()
+                else:
+                    st.sidebar.error("❌ بيانات خاطئة")
+    else:
+        st.sidebar.success(f"👤 {st.session_state.user_name} ({st.session_state.user_role})")
+        if st.sidebar.button("🚪 خروج"):
+            st.session_state.logged_in = False
+            st.session_state.user_name = ""
+            st.session_state.user_role = ""
+            st.session_state.selected_unit = None
+            st.session_state.edit_booking = None
+            st.experimental_rerun()
+
 # =========================
 # 6) تسجيل الدخول / الخروج
 # =========================
