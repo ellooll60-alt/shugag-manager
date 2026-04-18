@@ -148,7 +148,7 @@ else:
                 st.rerun()
 
     # --- التبويب 3: السجل العام ---
-  with tabs[2]:
+    with tabs[2]:
     st.subheader("📋 سجل الحجوزات")
     search = st.text_input("🔍 بحث بالاسم أو الهاتف")
 
