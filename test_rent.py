@@ -427,7 +427,8 @@ with tabs[3]:
                         "note": note
                     }).eq("id", b["id"]).execute()
 
-                    st.success("تم تحديث
+                    st.success("تم تحديث الإعدادات، يرجى إعادة تحميل الصفحة.")
+
                     from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
