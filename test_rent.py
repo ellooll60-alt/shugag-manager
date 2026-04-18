@@ -24,6 +24,8 @@ if 'logged_in' not in st.session_state:
         'language': 'ar',   # ar / en (قابل للتطوير لاحقًا)
         'theme': 'glass',   # light / dark / glass (قابل للتطوير لاحقًا)
     })
+if 'edit_booking' not in st.session_state:
+    st.session_state.edit_booking = None
 
 # =========================
 # 3) إعدادات النظام من Supabase
