@@ -562,10 +562,16 @@ with tabs[4]:
     if fin:
         df_fin = pd.DataFrame(fin)
 
-        total_income = df_fin["price"].sum()
-        total_expenses = df_fin["expenses"].sum()
-        total_comp = df_fin["compensations"].sum()
-        net = total_income - total_expenses + total_comp
+       df_fin["price"] = df_fin["price"].fillna(0)
+df_fin["expenses"] = df_fin["expenses"].fillna(0)
+df_fin["compensations"] = df_fin["compensations"].fillna(0)
+
+total_income = df_fin["price"].sum()
+total_expenses = df_fin["expenses"].sum()
+total_comp = df_fin["compensations"].sum()
+
+net = total_income - total_expenses + total_comp
+
 
         c1, c2, c3, c4 = st.columns(4)
 
