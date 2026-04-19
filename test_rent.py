@@ -25,7 +25,6 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 # ============================================
 # 📌 تهيئة الجلسة Session State
 # ============================================
-
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
@@ -43,8 +42,6 @@ if "edit_booking" not in st.session_state:
 
 if "edit_financial" not in st.session_state:
     st.session_state.edit_financial = None
-
-
 
 # ============================================
 # 📌 تحميل الإعدادات من قاعدة البيانات
@@ -187,6 +184,7 @@ else:
 
 if not st.session_state.logged_in:
     st.stop()
+
 # ============================================
 # 📌 تحميل البيانات الأساسية (الوحدات + المنصات)
 # ============================================
@@ -203,232 +201,271 @@ tabs = st.tabs([
     "📊 حالة الوحدات",
     "➕ حجز جديد",
     "📋 السجل العام",
+    "🧱 إدارة الوحدات والمنصات",
     "💰 التقارير المالية",
     "⚙️ الإعدادات"
 ])
 
 # =========================================================
-# 📊 التبويب الثاني: حالة الوحدات
+# 🏠 التبويب الأول: Dashboard
 # =========================================================
-with tabs[1]:
-    st.markdown("<div class='neon-title'>حالة الوحدات الآن</div>", unsafe_allow_html=True)
-    st.markdown("<div class='neon-sub'>عرض سريع لحالة كل وحدة.</div>", unsafe_allow_html=True)
+with tabs[0]:
+
+    st.markdown("<div class='neon-title'>لوحة التحكم</div>", unsafe_allow_html=True)
+    st.markdown("<div class='neon-sub'>نظرة عامة على أداء النظام اليوم.</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # فلاتر
-    col_filter1, col_filter2 = st.columns(2)
-    with col_filter1:
-        selected_platform = st.selectbox("تصفية حسب المنصة", ["الكل"] + plats)
-    with col_filter2:
-        show_only_busy = st.checkbox("عرض الوحدات المشغولة فقط")
+    bookings = supabase.table("bookings").select("*").execute().data or []
 
-    # جلب آخر حجز لكل وحدة
-    data = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
-    last_by_unit = {}
-    for b in data:
-        u = b.get("unit_no")
-        if u and u not in last_by_unit:
-            last_by_unit[u] = b
+    total_bookings = len(bookings)
+    total_units = len(units)
 
-    cards_cols = st.columns(4)
+    busy_units = set()
+    today_str = str(today)
 
-    for idx, u in enumerate(units):
-        col = cards_cols[idx % 4]
-        with col:
-            b = last_by_unit.get(u)
-            busy = False
-            if b and b.get("check_out") and b["check_out"] >= str(today):
-                busy = True
+    for b in bookings:
+        if b["check_in"] <= today_str <= b["check_out"]:
+            busy_units.add(b["unit_no"])
 
-            if show_only_busy and not busy:
-                continue
+    free_units = total_units - len(busy_units)
 
-            if selected_platform != "الكل" and b and b.get("platform") != selected_platform:
-                continue
+    df = pd.DataFrame(bookings)
+    if not df.empty:
+        df["price"] = df["price"].fillna(0)
+        df["expenses"] = df["expenses"].fillna(0)
+        df["compensations"] = df["compensations"].fillna(0)
 
-            bg = (
-                "linear-gradient(135deg, rgba(248,113,113,0.18), rgba(127,29,29,0.75))"
-                if busy else
-                "linear-gradient(135deg, rgba(34,197,94,0.18), rgba(6,78,59,0.75))"
-            )
+        total_income = df["price"].sum()
+        total_expenses = df["expenses"].sum()
+        total_comp = df["compensations"].sum()
+        net = total_income - total_expenses + total_comp
+    else:
+        total_income = total_expenses = total_comp = net = 0
 
-            st.markdown(
-                f"""
-                <div class='glass-card' style="margin-bottom:0.9rem; background:{bg};">
-                    <div style="font-size:1rem; font-weight:700;">الوحدة {u}</div>
-                    <div style="font-size:0.8rem;">
-                        الحالة: {"مشغولة" if busy else "شاغرة"}
-                    </div>
-                """,
-                unsafe_allow_html=True
-            )
+    c1, c2, c3, c4 = st.columns(4)
 
-            if b:
-                st.markdown(
-                    f"""
-                    <div style="font-size:0.75rem; margin-top:0.3rem;">
-                        العميل: {b.get('client_name','-')}<br>
-                        من: {b.get('check_in','-')} — إلى: {b.get('check_out','-')}<br>
-                        المنصة: {b.get('platform','-')}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+    with c1:
+        st.markdown(
+            f"<div class='glass-metric'><div class='neon-sub'>إجمالي الحجوزات</div>"
+            f"<div class='neon-number'>{total_bookings}</div></div>",
+            unsafe_allow_html=True
+        )
+
+    with c2:
+        st.markdown(
+            f"<div class='glass-metric'><div class='neon-sub'>الوحدات المشغولة</div>"
+            f"<div class='neon-number'>{len(busy_units)}</div></div>",
+            unsafe_allow_html=True
+        )
+
+    with c3:
+        st.markdown(
+            f"<div class='glass-metric'><div class='neon-sub'>الوحدات الشاغرة</div>"
+            f"<div class='neon-number'>{free_units}</div></div>",
+            unsafe_allow_html=True
+        )
+
+    with c4:
+        st.markdown(
+            f"<div class='glass-metric'><div class='neon-sub'>صافي الربح</div>"
+            f"<div class='neon-number'>{net}</div></div>",
+            unsafe_allow_html=True
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if not df.empty:
+        df["check_in"] = pd.to_datetime(df["check_in"])
+        df["day"] = df["check_in"].dt.date
+
+        chart = px.histogram(df, x="day", title="عدد الحجوزات حسب الأيام")
+        st.plotly_chart(chart, use_container_width=True)
+
+    st.markdown("<div class='neon-title'>آخر 10 حجوزات</div>", unsafe_allow_html=True)
+
+    if not df.empty:
+        st.dataframe(
+            df.sort_values("check_in", ascending=False).head(10)[[
+                "id", "unit_no", "client_name", "check_in", "check_out", "price"
+            ]],
+            use_container_width=True
+        )
+    else:
+        st.info("لا توجد حجوزات مسجلة.")
+# =========================================================
+# ➕ التبويب الثالث: حجز جديد
+# =========================================================
+with tabs[2]:
+
+    st.markdown("<div class='neon-title'>إضافة حجز جديد</div>", unsafe_allow_html=True)
+    st.markdown("<div class='neon-sub'>إدخال بيانات الحجز الجديد وحفظه في النظام.</div>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    with st.form("new_booking_form"):
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            unit_no = st.selectbox("الوحدة", units)
+            platform = st.selectbox("المنصة", plats)
+            client_name = st.text_input("اسم العميل")
+
+        with c2:
+            phone = st.text_input("رقم الجوال")
+            check_in = st.date_input("تاريخ الدخول", value=today)
+            check_out = st.date_input("تاريخ الخروج", value=today + timedelta(days=1))
+
+        with c3:
+            price = st.number_input("السعر الكلي", min_value=0)
+            expenses = st.number_input("المصاريف", min_value=0)
+            compensations = st.number_input("التعويضات", min_value=0)
+
+        note = st.text_area("ملاحظات إضافية")
+
+        submitted = st.form_submit_button("💾 حفظ الحجز")
+
+        if submitted:
+            if check_out < check_in:
+                st.error("❌ تاريخ الخروج يجب أن يكون بعد تاريخ الدخول.")
             else:
-                st.markdown(
-                    "<div style='font-size:0.75rem; color:#9ca3af;'>لا يوجد حجز مسجل.</div>",
-                    unsafe_allow_html=True
-                )
+                supabase.table("bookings").insert({
+                    "unit_no": unit_no,
+                    "platform": platform,
+                    "client_name": client_name,
+                    "phone": phone,
+                    "check_in": str(check_in),
+                    "check_out": str(check_out),
+                    "price": price,
+                    "expenses": expenses,
+                    "compensations": compensations,
+                    "note": note
+                }).execute()
 
-            st.markdown("</div>", unsafe_allow_html=True)
+                st.success("✅ تم إضافة الحجز بنجاح.")
+                st.rerun()
+# =========================================================
+# 📋 التبويب الرابع: السجل العام
+# =========================================================
+with tabs[3]:
 
+    st.markdown("<div class='neon-title'>السجل العام للحجوزات</div>", unsafe_allow_html=True)
+    st.markdown("<div class='neon-sub'>عرض وتصفية وتعديل وحذف الحجوزات.</div>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
+    all_bookings = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
 
+    # فلاتر
+    f1, f2, f3 = st.columns(3)
+    with f1:
+        filter_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units)
+    with f2:
+        filter_platform = st.selectbox("تصفية حسب المنصة", ["الكل"] + plats)
+    with f3:
+        filter_date = st.date_input("تصفية حسب تاريخ الدخول", value=None)
 
+    filtered = []
+    for b in all_bookings:
+        if filter_unit != "الكل" and b["unit_no"] != filter_unit:
+            continue
+        if filter_platform != "الكل" and b["platform"] != filter_platform:
+            continue
+        if filter_date and b["check_in"] != str(filter_date):
+            continue
+        filtered.append(b)
 
-    # =========================================================
-    # ✏️ نافذة تعديل الحجز
-    # =========================================================
-    if st.session_state.edit_booking:
-        b = st.session_state.edit_booking
+    st.markdown(f"<div class='neon-sub'>عدد الحجوزات: {len(filtered)}</div>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<hr>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-title'>تعديل الحجز</div>", unsafe_allow_html=True)
+    for b in filtered:
+        with st.expander(f"🧾 الحجز رقم {b['id']} — {b['client_name']} — الوحدة {b['unit_no']}"):
 
-        with st.form("edit_booking_form"):
+            st.write(f"**الوحدة:** {b['unit_no']}")
+            st.write(f"**المنصة:** {b['platform']}")
+            st.write(f"**العميل:** {b['client_name']}")
+            st.write(f"**الجوال:** {b['phone']}")
+            st.write(f"**الدخول:** {b['check_in']}")
+            st.write(f"**الخروج:** {b['check_out']}")
+            st.write(f"**السعر:** {b['price']}")
+            st.write(f"**المصاريف:** {b['expenses']}")
+            st.write(f"**التعويضات:** {b['compensations']}")
+            st.write(f"**ملاحظات:** {b['note']}")
+
             c1, c2, c3 = st.columns(3)
 
             with c1:
-                unit_no = st.selectbox("الوحدة", units, index=units.index(b["unit_no"]))
-                platform = st.selectbox("المنصة", plats, index=plats.index(b["platform"]))
-                client_name = st.text_input("اسم العميل", b["client_name"])
-
-            with c2:
-                phone = st.text_input("رقم الجوال", b["phone"])
-                check_in = st.date_input(
-                    "تاريخ الدخول",
-                    value=datetime.strptime(b["check_in"], "%Y-%m-%d").date()
-                )
-                check_out = st.date_input(
-                    "تاريخ الخروج",
-                    value=datetime.strptime(b["check_out"], "%Y-%m-%d").date()
-                )
-
-            with c3:
-                price = st.number_input("السعر الكلي", min_value=0, value=b["price"])
-                expenses = st.number_input("المصاريف", min_value=0, value=b["expenses"])
-                compensations = st.number_input("التعويضات", min_value=0, value=b["compensations"])
-
-            note = st.text_area("ملاحظات إضافية", b["note"])
-
-            if st.form_submit_button("💾 حفظ التعديلات"):
-                if check_out < check_in:
-                    st.error("❌ تاريخ الخروج يجب أن يكون بعد تاريخ الدخول.")
-                else:
-                    supabase.table("bookings").update({
-                        "unit_no": unit_no,
-                        "platform": platform,
-                        "client_name": client_name,
-                        "phone": phone,
-                        "check_in": str(check_in),
-                        "check_out": str(check_out),
-                        "price": price,
-                        "expenses": expenses,
-                        "compensations": compensations,
-                        "note": note
-                    }).eq("id", b["id"]).execute()
-
-                    # 🔥 إصلاح الخطأ القاتل هنا
-                    st.success("تم تحديث الحجز بنجاح.")
-                    st.session_state.edit_booking = None
+                if st.button("🧾 عرض الفاتورة", key=f"invoice_{b['id']}"):
+                    st.session_state.invoice_booking = b
                     st.rerun()
 
+            with c2:
+                if st.button("✏️ تعديل", key=f"edit_{b['id']}"):
+                    st.session_state.edit_booking = b
+                    st.rerun()
+
+            with c3:
+                if st.button("🗑️ حذف", key=f"delete_{b['id']}"):
+                    supabase.table("bookings").delete().eq("id", b["id"]).execute()
+                    st.error("تم حذف الحجز.")
+                    st.rerun()
 # =========================================================
-# 🧾 دالة إنشاء فاتورة PDF A4 (عربي + إنجليزي)
-# =========================================================
-def generate_invoice_pdf(booking, settings):
-    buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-
-    app_name = settings.get("app_name", "نظام إدارة الوحدات")
-
-    y = height - 40 * mm
-
-    # عنوان الفاتورة
-    c.setFont("Helvetica-Bold", 18)
-    c.drawString(30 * mm, y, "Invoice / فاتورة")
-    y -= 10 * mm
-
-    # اسم النظام
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(30 * mm, y, app_name)
-    y -= 8 * mm
-
-    # بيانات عامة
-    c.setFont("Helvetica", 10)
-    c.drawString(30 * mm, y, f"Booking ID: {booking['id']}")
-    y -= 6 * mm
-    c.drawString(30 * mm, y, f"Client / العميل: {booking['client_name']}")
-    y -= 6 * mm
-    c.drawString(30 * mm, y, f"Unit / الوحدة: {booking['unit_no']}")
-    y -= 6 * mm
-    c.drawString(30 * mm, y, f"Platform / المنصة: {booking['platform']}")
-    y -= 6 * mm
-    c.drawString(30 * mm, y, f"Phone / الجوال: {booking['phone']}")
-    y -= 10 * mm
-
-    # التواريخ
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(30 * mm, y, "Dates / التواريخ")
-    y -= 7 * mm
-    c.setFont("Helvetica", 10)
-    c.drawString(30 * mm, y, f"Check-in / الدخول: {booking['check_in']}")
-    y -= 6 * mm
-    c.drawString(30 * mm, y, f"Check-out / الخروج: {booking['check_out']}")
-    y -= 10 * mm
-
-    # التفاصيل المالية
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(30 * mm, y, "Financial Details / التفاصيل المالية")
-    y -= 7 * mm
-    c.setFont("Helvetica", 10)
-    c.drawString(30 * mm, y, f"Price / السعر: {booking['price']}")
-    y -= 6 * mm
-    c.drawString(30 * mm, y, f"Expenses / المصاريف: {booking['expenses']}")
-    y -= 6 * mm
-    c.drawString(30 * mm, y, f"Compensations / التعويضات: {booking['compensations']}")
-    y -= 6 * mm
-
-    net = booking["price"] - booking["expenses"] + booking["compensations"]
-    y -= 4 * mm
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(30 * mm, y, f"Net / الصافي: {net}")
-    y -= 10 * mm
-
-    # الملاحظات
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(30 * mm, y, "Notes / الملاحظات:")
-    y -= 6 * mm
-    c.setFont("Helvetica", 9)
-
-    note = booking.get("note") or ""
-    for line in note.split("\n"):
-        c.drawString(30 * mm, y, line[:90])
-        y -= 5 * mm
-        if y < 30 * mm:
-            break
-
-    c.showPage()
-    c.save()
-    pdf = buffer.getvalue()
-    buffer.close()
-    return pdf
-
-# =========================================================
-# 💰 التبويب الخامس: التقارير المالية
+# 🧱 التبويب الخامس الجديد: إدارة الوحدات والمنصات
 # =========================================================
 with tabs[4]:
+
+    st.markdown("<div class='neon-title'>إدارة الوحدات والمنصات</div>", unsafe_allow_html=True)
+    st.markdown("<div class='neon-sub'>إضافة أو حذف الوحدات والمنصات.</div>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================
+    # 🏢 إدارة الوحدات
+    # ============================
+    st.markdown("### 🏢 إدارة الوحدات")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        new_unit = st.text_input("إضافة وحدة جديدة")
+        if st.button("➕ إضافة وحدة"):
+            if new_unit:
+                supabase.table("units_names").insert({"name": new_unit}).execute()
+                st.success("تمت إضافة الوحدة.")
+                st.rerun()
+
+    with col2:
+        del_unit = st.selectbox("حذف وحدة", [""] + units)
+        if st.button("🗑️ حذف الوحدة"):
+            if del_unit:
+                supabase.table("units_names").delete().eq("name", del_unit).execute()
+                st.error("تم حذف الوحدة.")
+                st.rerun()
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # ============================
+    # 🌐 إدارة المنصات
+    # ============================
+    st.markdown("### 🌐 إدارة المنصات")
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        new_plat = st.text_input("إضافة منصة جديدة")
+        if st.button("➕ إضافة منصة"):
+            if new_plat:
+                supabase.table("platforms").insert({"name": new_plat}).execute()
+                st.success("تمت إضافة المنصة.")
+                st.rerun()
+
+    with col4:
+        del_plat = st.selectbox("حذف منصة", [""] + plats)
+        if st.button("🗑️ حذف المنصة"):
+            if del_plat:
+                supabase.table("platforms").delete().eq("name", del_plat).execute()
+                st.error("تم حذف المنصة.")
+                st.rerun()
+# =========================================================
+# 💰 التبويب السادس: التقارير المالية
+# =========================================================
+with tabs[5]:
 
     st.markdown("<div class='neon-title'>التقارير المالية</div>", unsafe_allow_html=True)
     st.markdown("<div class='neon-sub'>تحليل الإيرادات والمصاريف والتعويضات.</div>", unsafe_allow_html=True)
@@ -477,7 +514,7 @@ with tabs[4]:
             st.session_state.invoice_booking = None
             st.rerun()
 
-        st.stop()   # ← يمنع بناء الصفحة مرتين
+        st.stop()
 
     # =====================================================
     # 📌 الفلاتر
@@ -487,25 +524,13 @@ with tabs[4]:
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        start_date = st.date_input(
-            "من تاريخ",
-            value=today.replace(day=1),
-            key="fin_filter_start"
-        )
+        start_date = st.date_input("من تاريخ", value=today.replace(day=1), key="fin_filter_start")
 
     with c2:
-        end_date = st.date_input(
-            "إلى تاريخ",
-            value=today,
-            key="fin_filter_end"
-        )
+        end_date = st.date_input("إلى تاريخ", value=today, key="fin_filter_end")
 
     with c3:
-        fin_unit = st.selectbox(
-            "تصفية حسب الوحدة",
-            ["الكل"] + units,
-            key="fin_filter_unit"
-        )
+        fin_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units, key="fin_filter_unit")
 
     # =====================================================
     # 📌 تطبيق الفلاتر
@@ -606,17 +631,15 @@ with tabs[4]:
 
     else:
         st.info("لا توجد بيانات مالية ضمن الفترة المحددة.")
-
 # =========================================================
-# ⚙️ التبويب السادس: الإعدادات
+# ⚙️ التبويب السابع: الإعدادات
 # =========================================================
-with tabs[5]:
+with tabs[6]:
 
     st.markdown("<div class='neon-title'>الإعدادات العامة للنظام</div>", unsafe_allow_html=True)
     st.markdown("<div class='neon-sub'>تعديل اسم النظام والشعار والخلفية.</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 🔐 السماح بالدخول للمدير فقط
     if (
         st.session_state.user_role is None 
         or st.session_state.user_role.strip().lower() != "admin"
@@ -624,7 +647,6 @@ with tabs[5]:
         st.warning("هذه الصفحة متاحة للمدير فقط.")
         st.stop()
 
-    # ✔ إذا كان المستخدم مديرًا، تظهر له الإعدادات
     with st.form("settings_form"):
         app_name_in = st.text_input("اسم النظام", value=settings.get("app_name", "نظام إدارة الوحدات"))
         logo_in = st.text_input("رابط الشعار (logo_url)", value=settings.get("logo_path", ""))
@@ -640,3 +662,4 @@ with tabs[5]:
             upsert_setting("background_image", bg_in)
 
             st.success("✅ تم تحديث الإعدادات، يرجى إعادة تحميل الصفحة.")
+
