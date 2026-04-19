@@ -534,19 +534,33 @@ with tabs[4]:
                 st.rerun()
 
     # =====================================================
-    # 📌 الفلاتر (تظهر فقط إذا لم تكن الفاتورة مفتوحة)
-    # =====================================================
-    all_fin = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
+# 📌 الفلاتر (تظهر فقط إذا لم تكن الفاتورة مفتوحة)
+# =====================================================
+all_fin = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        start_date = st.date_input("من تاريخ", value=today.replace(day=1), key="fin_filter_start")
+c1, c2, c3 = st.columns(3)
 
-    with c2:
-        end_date = st.date_input("إلى تاريخ", value=today, key="fin_filter_end")
+with c1:
+    start_date = st.date_input(
+        "من تاريخ",
+        value=today.replace(day=1),
+        key="fin_filter_start"   # ← مفتاح التقارير المالية
+    )
 
-    with c3:
-        fin_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units, key="fin_filter_unit")
+with c2:
+    end_date = st.date_input(
+        "إلى تاريخ",
+        value=today,
+        key="fin_filter_end"     # ← مفتاح التقارير المالية
+    )
+
+with c3:
+    fin_unit = st.selectbox(
+        "تصفية حسب الوحدة",
+        ["الكل"] + units,
+        key="fin_filter_unit"    # ← مفتاح التقارير المالية
+    )
+
 
     # =====================================================
     # 📌 تطبيق الفلاتر
