@@ -333,12 +333,15 @@ with tabs[2]:
 # 📋 التبويب الرابع: السجل العام
 # =========================================================
 with tabs[3]:
+
     st.markdown("<div class='neon-title'>السجل العام للحجوزات</div>", unsafe_allow_html=True)
     st.markdown("<div class='neon-sub'>عرض وتصفية جميع الحجوزات.</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # جلب كل الحجوزات
     all_bookings = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
 
+    # الفلاتر
     f1, f2, f3 = st.columns(3)
     with f1:
         filter_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units)
@@ -349,6 +352,7 @@ with tabs[3]:
     with f3:
         filter_client = st.text_input("بحث باسم العميل")
 
+    # تطبيق الفلاتر
     filtered = []
     for b in all_bookings:
         if filter_unit != "الكل" and b.get("unit_no") != filter_unit:
@@ -365,6 +369,7 @@ with tabs[3]:
     # عرض الحجوزات
     for b in filtered:
         with st.expander(f"🧾 حجز رقم {b['id']} — الوحدة {b['unit_no']} — {b['client_name']}"):
+
             st.write(f"**الوحدة:** {b['unit_no']}")
             st.write(f"**المنصة:** {b['platform']}")
             st.write(f"**العميل:** {b['client_name']}")
@@ -388,31 +393,25 @@ with tabs[3]:
             # زر حذف الحجز
             with c2:
                 if st.button(f"🗑️ حذف الحجز", key=f"del_booking_{b['id']}"):
-                    with c2:
-    if st.button(f"🗑️ حذف الحجز", key=f"del_booking_{b['id']}"):
-        st.session_state.confirm_delete = b["id"]
-        st.rerun()
+                    st.session_state.confirm_delete = b["id"]
+                    st.rerun()
 
-# نافذة التأكيد
-if "confirm_delete" in st.session_state and st.session_state.confirm_delete == b["id"]:
-    st.warning("⚠️ هل أنت متأكد من حذف هذا الحجز؟")
-    cc1, cc2 = st.columns(2)
+            # نافذة التأكيد
+            if "confirm_delete" in st.session_state and st.session_state.confirm_delete == b["id"]:
+                st.warning("⚠️ هل أنت متأكد من حذف هذا الحجز؟")
+                cc1, cc2 = st.columns(2)
 
-    with cc1:
-        if st.button("✔️ نعم، احذف", key=f"yes_delete_{b['id']}"):
-            supabase.table("bookings").delete().eq("id", b["id"]).execute()
-            del st.session_state.confirm_delete
-            st.success("تم حذف الحجز.")
-            st.rerun()
-
-    with cc2:
-        if st.button("❌ إلغاء", key=f"cancel_delete_{b['id']}"):
-            del st.session_state.confirm_delete
-            st.info("تم إلغاء الحذف.")
-            st.rerun()
-
+                with cc1:
+                    if st.button("✔️ نعم، احذف", key=f"yes_delete_{b['id']}"):
                         supabase.table("bookings").delete().eq("id", b["id"]).execute()
+                        del st.session_state.confirm_delete
                         st.success("تم حذف الحجز.")
+                        st.rerun()
+
+                with cc2:
+                    if st.button("❌ إلغاء", key=f"cancel_delete_{b['id']}"):
+                        del st.session_state.confirm_delete
+                        st.info("تم إلغاء الحذف.")
                         st.rerun()
 
             # زر الفاتورة
@@ -421,6 +420,7 @@ if "confirm_delete" in st.session_state and st.session_state.confirm_delete == b
                     st.session_state.invoice_booking = b
                     st.session_state.active_tab = 4  # الانتقال لتبويب التقارير المالية
                     st.rerun()
+
 
 
     # =========================================================
