@@ -380,20 +380,26 @@ with tabs[3]:
 
             # زر تعديل الحجز
             with c1:
-                if st.button(f"✏️ تعديل الحجز {b['id']}", key=f"edit_booking_{b['id']}"):
+                if st.button(f"✏️ تعديل الحجز", key=f"edit_booking_{b['id']}"):
                     st.session_state.edit_booking = b
+                    st.session_state.active_tab = 1  # الانتقال لتبويب التعديل
                     st.rerun()
 
             # زر حذف الحجز
             with c2:
-                if st.button(f"🗑️ حذف الحجز {b['id']}", key=f"del_booking_{b['id']}"):
-                    supabase.table("bookings").delete().eq("id", b["id"]).execute()
-                    st.error("تم حذف الحجز.")
-                    st.rerun()
+                if st.button(f"🗑️ حذف الحجز", key=f"del_booking_{b['id']}"):
+                    if st.confirm("هل أنت متأكد من حذف هذا الحجز؟"):
+                        supabase.table("bookings").delete().eq("id", b["id"]).execute()
+                        st.success("تم حذف الحجز.")
+                        st.rerun()
 
             # زر الفاتورة
             with c3:
-                st.info("🧾 طباعة الفاتورة متاحة من التقارير المالية.")
+                if st.button("🧾 عرض الفاتورة", key=f"invoice_{b['id']}"):
+                    st.session_state.invoice_booking = b
+                    st.session_state.active_tab = 4  # الانتقال لتبويب التقارير المالية
+                    st.rerun()
+
 
     # =========================================================
     # ✏️ نافذة تعديل الحجز
