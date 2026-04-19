@@ -566,10 +566,40 @@ def generate_invoice_pdf(booking, settings):
 # 💰 التبويب الخامس: التقارير المالية
 # =========================================================
 with tabs[4]:
+
     st.markdown("<div class='neon-title'>التقارير المالية</div>", unsafe_allow_html=True)
     st.markdown("<div class='neon-sub'>تحليل الإيرادات والمصاريف والتعويضات.</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # ============================
+    # 📌 عرض الفاتورة إذا تم اختيارها
+    # ============================
+    if "invoice_booking" in st.session_state and st.session_state.invoice_booking:
+        b = st.session_state.invoice_booking
+
+        st.markdown("<div class='neon-sub'>🧾 فاتورة الحجز</div>", unsafe_allow_html=True)
+        st.write(f"**رقم الحجز:** {b['id']}")
+        st.write(f"**الوحدة:** {b['unit_no']}")
+        st.write(f"**العميل:** {b['client_name']}")
+        st.write(f"**الجوال:** {b['phone']}")
+        st.write(f"**الدخول:** {b['check_in']}")
+        st.write(f"**الخروج:** {b['check_out']}")
+        st.write(f"**السعر:** {b['price']}")
+        st.write(f"**المصاريف:** {b['expenses']}")
+        st.write(f"**التعويضات:** {b['compensations']}")
+        st.write(f"**ملاحظات:** {b['note']}")
+
+        st.markdown("---")
+
+        if st.button("🔙 رجوع للتقارير"):
+            st.session_state.invoice_booking = None
+            st.rerun()
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================
+    # 📌 الفلاتر
+    # ============================
     all_fin = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
 
     c1, c2, c3 = st.columns(3)
@@ -580,7 +610,9 @@ with tabs[4]:
     with c3:
         fin_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units, key="fin_unit_filter")
 
-
+    # ============================
+    # 📌 تطبيق الفلاتر
+    # ============================
     fin = []
     for b in all_fin:
         try:
@@ -597,6 +629,33 @@ with tabs[4]:
 
     st.markdown(f"<div class='neon-sub'>عدد العمليات المالية: {len(fin)}</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================
+    # 📌 عرض العمليات المالية
+    # ============================
+    for b in fin:
+        with st.expander(f"💵 عملية رقم {b['id']} — الوحدة {b['unit_no']} — {b['client_name']}"):
+            st.write(f"**الوحدة:** {b['unit_no']}")
+            st.write(f"**العميل:** {b['client_name']}")
+            st.write(f"**الدخول:** {b['check_in']}")
+            st.write(f"**الخروج:** {b['check_out']}")
+            st.write(f"**السعر:** {b['price']}")
+            st.write(f"**المصاريف:** {b['expenses']}")
+            st.write(f"**التعويضات:** {b['compensations']}")
+            st.write(f"**ملاحظات:** {b['note']}")
+
+            c1, c2 = st.columns(2)
+
+            # زر عرض الفاتورة
+            with c1:
+                if st.button("🧾 عرض الفاتورة", key=f"invoice_fin_{b['id']}"):
+                    st.session_state.invoice_booking = b
+                    st.rerun()
+
+            # زر تعديل العملية المالية (لاحقًا)
+            with c2:
+                st.info("✏️ تعديل العملية المالية سيتم إضافته لاحقًا.")
+
     # =========================================================
 # 📊 عرض الملخص المالي (إجمالي الإيرادات والمصاريف والصافي)
 # =========================================================
