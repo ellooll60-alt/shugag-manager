@@ -375,23 +375,38 @@ with tabs[2]:
     with st.form("new_booking_form"):
         c1, c2, c3 = st.columns(3)
 
+        # -------------------------
+        # بيانات الوحدة والمنصة والعميل
+        # -------------------------
         with c1:
             unit_no = st.selectbox("الوحدة", units)
             platform = st.selectbox("المنصة", plats)
             client_name = st.text_input("اسم العميل")
 
+        # -------------------------
+        # بيانات التواصل والتواريخ
+        # -------------------------
         with c2:
             phone = st.text_input("رقم الجوال")
             check_in = st.date_input("تاريخ الدخول", value=today)
             check_out = st.date_input("تاريخ الخروج", value=today + timedelta(days=1))
 
+        # -------------------------
+        # البيانات المالية
+        # -------------------------
         with c3:
             price = st.number_input("السعر الكلي", min_value=0)
             expenses = st.number_input("المصاريف", min_value=0)
             compensations = st.number_input("التعويضات", min_value=0)
 
+        # -------------------------
+        # ملاحظات إضافية
+        # -------------------------
         note = st.text_area("ملاحظات إضافية")
 
+        # -------------------------
+        # زر الحفظ
+        # -------------------------
         submitted = st.form_submit_button("💾 حفظ الحجز")
 
         if submitted:
@@ -413,6 +428,7 @@ with tabs[2]:
 
                 st.success("✅ تم إضافة الحجز بنجاح.")
                 st.rerun()
+
 # =========================================================
 # 📋 التبويب الرابع: السجل العام
 # =========================================================
