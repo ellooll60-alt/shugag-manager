@@ -830,18 +830,7 @@ with tabs[4]:
                 st.info("✏️ تعديل العملية المالية سيتم إضافته لاحقًا.")
 
 
-    # =====================================================
-    # 📌 الفلاتر
-    # =====================================================
-    all_fin = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        start_date = st.date_input("من تاريخ", value=today.replace(day=1))
-    with c2:
-        end_date = st.date_input("إلى تاريخ", value=today)
-    with c3:
-        fin_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units, key="fin_unit_filter")
+    
 
     # =====================================================
     # 📌 تطبيق الفلاتر
