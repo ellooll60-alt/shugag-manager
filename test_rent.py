@@ -388,7 +388,29 @@ with tabs[3]:
             # زر حذف الحجز
             with c2:
                 if st.button(f"🗑️ حذف الحجز", key=f"del_booking_{b['id']}"):
-                    if st.confirm("هل أنت متأكد من حذف هذا الحجز؟"):
+                    with c2:
+    if st.button(f"🗑️ حذف الحجز", key=f"del_booking_{b['id']}"):
+        st.session_state.confirm_delete = b["id"]
+        st.rerun()
+
+# نافذة التأكيد
+if "confirm_delete" in st.session_state and st.session_state.confirm_delete == b["id"]:
+    st.warning("⚠️ هل أنت متأكد من حذف هذا الحجز؟")
+    cc1, cc2 = st.columns(2)
+
+    with cc1:
+        if st.button("✔️ نعم، احذف", key=f"yes_delete_{b['id']}"):
+            supabase.table("bookings").delete().eq("id", b["id"]).execute()
+            del st.session_state.confirm_delete
+            st.success("تم حذف الحجز.")
+            st.rerun()
+
+    with cc2:
+        if st.button("❌ إلغاء", key=f"cancel_delete_{b['id']}"):
+            del st.session_state.confirm_delete
+            st.info("تم إلغاء الحذف.")
+            st.rerun()
+
                         supabase.table("bookings").delete().eq("id", b["id"]).execute()
                         st.success("تم حذف الحجز.")
                         st.rerun()
