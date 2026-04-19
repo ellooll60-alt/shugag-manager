@@ -477,22 +477,35 @@ with tabs[4]:
             st.session_state.invoice_booking = None
             st.rerun()
 
-        st.stop()   # ← أهم خطوة في الكود كله
+        st.stop()   # ← يمنع بناء الصفحة مرتين
 
     # =====================================================
-    # 📌 الفلاتر (لن تظهر إذا كانت الفاتورة مفتوحة)
+    # 📌 الفلاتر
     # =====================================================
     all_fin = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
 
     c1, c2, c3 = st.columns(3)
+
     with c1:
-        start_date = st.date_input("من تاريخ", value=today.replace(day=1), key="fin_filter_start")
+        start_date = st.date_input(
+            "من تاريخ",
+            value=today.replace(day=1),
+            key="fin_filter_start"
+        )
 
     with c2:
-        end_date = st.date_input("إلى تاريخ", value=today, key="fin_filter_end")
+        end_date = st.date_input(
+            "إلى تاريخ",
+            value=today,
+            key="fin_filter_end"
+        )
 
     with c3:
-        fin_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units, key="fin_filter_unit")
+        fin_unit = st.selectbox(
+            "تصفية حسب الوحدة",
+            ["الكل"] + units,
+            key="fin_filter_unit"
+        )
 
     # =====================================================
     # 📌 تطبيق الفلاتر
@@ -534,528 +547,65 @@ with tabs[4]:
                 st.rerun()
 
     # =====================================================
-# 📌 الفلاتر (تظهر فقط إذا لم تكن الفاتورة مفتوحة)
-# =====================================================
-all_fin = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
-
-c1, c2, c3 = st.columns(3)
-
-with c1:
-    start_date = st.date_input(
-        "من تاريخ",
-        value=today.replace(day=1),
-        key="fin_filter_start"   # ← مفتاح التقارير المالية
-    )
-
-with c2:
-    end_date = st.date_input(
-        "إلى تاريخ",
-        value=today,
-        key="fin_filter_end"     # ← مفتاح التقارير المالية
-    )
-
-with c3:
-    fin_unit = st.selectbox(
-        "تصفية حسب الوحدة",
-        ["الكل"] + units,
-        key="fin_filter_unit"    # ← مفتاح التقارير المالية
-    )
-
-
+    # 📊 عرض الملخص المالي
     # =====================================================
-    # 📌 تطبيق الفلاتر
-    # =====================================================
-    fin = []
-    for b in all_fin:
-        try:
-            d = datetime.strptime(b["check_in"], "%Y-%m-%d").date()
-        except:
-            continue
+    if fin:
+        df_fin = pd.DataFrame(fin)
 
-        if d < start_date or d > end_date:
-            continue
-        if fin_unit != "الكل" and b.get("unit_no") != fin_unit:
-            continue
+        df_fin["price"] = df_fin["price"].fillna(0)
+        df_fin["expenses"] = df_fin["expenses"].fillna(0)
+        df_fin["compensations"] = df_fin["compensations"].fillna(0)
 
-        fin.append(b)
+        total_income = df_fin["price"].sum()
+        total_expenses = df_fin["expenses"].sum()
+        total_comp = df_fin["compensations"].sum()
 
-    st.markdown(f"<div class='neon-sub'>عدد العمليات المالية: {len(fin)}</div>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
+        net = total_income - total_expenses + total_comp
 
-    # =====================================================
-    # 📌 عرض العمليات المالية (تظهر فقط إذا لم تكن الفاتورة مفتوحة)
-    # =====================================================
-    for b in fin:
-        with st.expander(f"💵 عملية رقم {b['id']} — الوحدة {b['unit_no']} — {b['client_name']}"):
+        c1, c2, c3, c4 = st.columns(4)
 
-            st.write(f"**الوحدة:** {b['unit_no']}")
-            st.write(f"**العميل:** {b['client_name']}")
-            st.write(f"**الدخول:** {b['check_in']}")
-            st.write(f"**الخروج:** {b['check_out']}")
-            st.write(f"**السعر:** {b['price']}")
-            st.write(f"**المصاريف:** {b['expenses']}")
-            st.write(f"**التعويضات:** {b['compensations']}")
-            st.write(f"**ملاحظات:** {b['note']}")
-
-            if st.button("🧾 عرض الفاتورة", key=f"open_invoice_{b['id']}"):
-                st.session_state.invoice_booking = b
-                st.rerun()
-
-
-    # =========================================================
-# 💰 التبويب الخامس: التقارير المالية
-# =========================================================
-with tabs[4]:
-
-    st.markdown("<div class='neon-title'>التقارير المالية</div>", unsafe_allow_html=True)
-    st.markdown("<div class='neon-sub'>تحليل الإيرادات والمصاريف والتعويضات.</div>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # =====================================================
-    # 🧾 عرض الفاتورة إذا تم اختيارها من السجل العام
-    # =====================================================
-    if "invoice_booking" in st.session_state and st.session_state.invoice_booking:
-        b = st.session_state.invoice_booking
-
-        st.markdown("<div class='neon-sub'>🧾 فاتورة الحجز</div>", unsafe_allow_html=True)
-
-        st.write(f"**رقم الحجز:** {b['id']}")
-        st.write(f"**الوحدة:** {b['unit_no']}")
-        st.write(f"**العميل:** {b['client_name']}")
-        st.write(f"**الجوال:** {b['phone']}")
-        st.write(f"**الدخول:** {b['check_in']}")
-        st.write(f"**الخروج:** {b['check_out']}")
-        st.write(f"**السعر:** {b['price']}")
-        st.write(f"**المصاريف:** {b['expenses']}")
-        st.write(f"**التعويضات:** {b['compensations']}")
-        st.write(f"**ملاحظات:** {b['note']}")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # زر الطباعة
-        st.markdown("""
-            <button onclick="window.print()" 
-            style="
-                background-color:#4CAF50;
-                color:white;
-                padding:10px 20px;
-                border:none;
-                border-radius:5px;
-                font-size:18px;
-                cursor:pointer;
-                margin-top:10px;
-            ">
-            🖨️ طباعة الفاتورة
-            </button>
-        """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # زر الرجوع
-        if st.button("🔙 رجوع للتقارير", key="fin_back_btn"):
-            st.session_state.invoice_booking = None
-            st.rerun()
-
-        st.markdown("<hr>", unsafe_allow_html=True)
-
-    # =====================================================
-    # 📌 الفلاتر
-    # =====================================================
-    all_fin = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        start_date = st.date_input("من تاريخ", value=today.replace(day=1), key="fin_filter_start")
-
-    with c2:
-        end_date = st.date_input("إلى تاريخ", value=today, key="fin_filter_end")
-
-    with c3:
-        fin_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units, key="fin_filter_unit")
-
-    # =====================================================
-    # 📌 تطبيق الفلاتر
-    # =====================================================
-    fin = []
-    for b in all_fin:
-        try:
-            d = datetime.strptime(b["check_in"], "%Y-%m-%d").date()
-        except:
-            continue
-
-        if d < start_date or d > end_date:
-            continue
-        if fin_unit != "الكل" and b.get("unit_no") != fin_unit:
-            continue
-
-        fin.append(b)
-
-    st.markdown(f"<div class='neon-sub'>عدد العمليات المالية: {len(fin)}</div>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # =====================================================
-    # 📌 عرض العمليات المالية
-    # =====================================================
-    for b in fin:
-        with st.expander(f"💵 عملية رقم {b['id']} — الوحدة {b['unit_no']} — {b['client_name']}"):
-
-            st.write(f"**الوحدة:** {b['unit_no']}")
-            st.write(f"**العميل:** {b['client_name']}")
-            st.write(f"**الدخول:** {b['check_in']}")
-            st.write(f"**الخروج:** {b['check_out']}")
-            st.write(f"**السعر:** {b['price']}")
-            st.write(f"**المصاريف:** {b['expenses']}")
-            st.write(f"**التعويضات:** {b['compensations']}")
-            st.write(f"**ملاحظات:** {b['note']}")
-
-            c1, c2 = st.columns(2)
-
-            # زر عرض الفاتورة (مفتاح فريد)
-            with c1:
-                if st.button("🧾 عرض الفاتورة", key=f"fin_invoice_btn_{b['id']}"):
-                    st.session_state.invoice_booking = b
-                    st.rerun()
-
-            with c2:
-                st.info("✏️ تعديل العملية المالية سيتم إضافته لاحقًا.")
-
-
-    # =====================================================
-    # 📌 الفلاتر
-    # =====================================================
-    all_fin = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        start_date = st.date_input("من تاريخ", value=today.replace(day=1), key="fin_start_date")
-
-    with c2:
-        end_date = st.date_input("إلى تاريخ", value=today, key="fin_end_date")
-
-    with c3:
-        fin_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units, key="fin_unit_filter")
-
-    # =====================================================
-    # 📌 تطبيق الفلاتر
-    # =====================================================
-    fin = []
-    for b in all_fin:
-        try:
-            d = datetime.strptime(b["check_in"], "%Y-%m-%d").date()
-        except:
-            continue
-
-        if d < start_date or d > end_date:
-            continue
-        if fin_unit != "الكل" and b.get("unit_no") != fin_unit:
-            continue
-
-        fin.append(b)
-
-    st.markdown(f"<div class='neon-sub'>عدد العمليات المالية: {len(fin)}</div>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # =====================================================
-    # 📌 عرض العمليات المالية
-    # =====================================================
-    for b in fin:
-        with st.expander(f"💵 عملية رقم {b['id']} — الوحدة {b['unit_no']} — {b['client_name']}"):
-
-            st.write(f"**الوحدة:** {b['unit_no']}")
-            st.write(f"**العميل:** {b['client_name']}")
-            st.write(f"**الدخول:** {b['check_in']}")
-            st.write(f"**الخروج:** {b['check_out']}")
-            st.write(f"**السعر:** {b['price']}")
-            st.write(f"**المصاريف:** {b['expenses']}")
-            st.write(f"**التعويضات:** {b['compensations']}")
-            st.write(f"**ملاحظات:** {b['note']}")
-
-            c1, c2 = st.columns(2)
-
-            # زر عرض الفاتورة (مفتاح فريد)
-            with c1:
-                if st.button("🧾 عرض الفاتورة", key=f"fin_invoice_btn_{b['id']}"):
-                    st.session_state.invoice_booking = b
-                    st.rerun()
-
-            # زر تعديل العملية المالية (لاحقًا)
-            with c2:
-                st.info("✏️ تعديل العملية المالية سيتم إضافته لاحقًا.")
-
-
-    # =====================================================
-    # 📌 الفلاتر
-    # =====================================================
-    all_fin = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        start_date = st.date_input("من تاريخ", value=today.replace(day=1))
-    with c2:
-        end_date = st.date_input("إلى تاريخ", value=today)
-    with c3:
-        fin_unit = st.selectbox("تصفية حسب الوحدة", ["الكل"] + units, key="fin_unit_filter")
-
-    # =====================================================
-    # 📌 تطبيق الفلاتر
-    # =====================================================
-    fin = []
-    for b in all_fin:
-        try:
-            d = datetime.strptime(b["check_in"], "%Y-%m-%d").date()
-        except:
-            continue
-
-        if d < start_date or d > end_date:
-            continue
-        if fin_unit != "الكل" and b.get("unit_no") != fin_unit:
-            continue
-
-        fin.append(b)
-
-    st.markdown(f"<div class='neon-sub'>عدد العمليات المالية: {len(fin)}</div>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # =====================================================
-    # 📌 عرض العمليات المالية
-    # =====================================================
-    for b in fin:
-        with st.expander(f"💵 عملية رقم {b['id']} — الوحدة {b['unit_no']} — {b['client_name']}"):
-
-            st.write(f"**الوحدة:** {b['unit_no']}")
-            st.write(f"**العميل:** {b['client_name']}")
-            st.write(f"**الدخول:** {b['check_in']}")
-            st.write(f"**الخروج:** {b['check_out']}")
-            st.write(f"**السعر:** {b['price']}")
-            st.write(f"**المصاريف:** {b['expenses']}")
-            st.write(f"**التعويضات:** {b['compensations']}")
-            st.write(f"**ملاحظات:** {b['note']}")
-
-            c1, c2 = st.columns(2)
-
-            # زر عرض الفاتورة (مفتاح جديد لتجنب التكرار)
-            with c1:
-                if st.button("🧾 عرض الفاتورة", key=f"invoice_financial_{b['id']}"):
-                    st.session_state.invoice_booking = b
-                    st.rerun()
-
-            # زر تعديل العملية المالية (لاحقًا)
-            with c2:
-                st.info("✏️ تعديل العملية المالية سيتم إضافته لاحقًا.")
-
-
-    
-
-    # =====================================================
-    # 📌 تطبيق الفلاتر
-    # =====================================================
-    fin = []
-    for b in all_fin:
-        try:
-            d = datetime.strptime(b["check_in"], "%Y-%m-%d").date()
-        except:
-            continue
-
-        if d < start_date or d > end_date:
-            continue
-        if fin_unit != "الكل" and b.get("unit_no") != fin_unit:
-            continue
-
-        fin.append(b)
-
-    st.markdown(f"<div class='neon-sub'>عدد العمليات المالية: {len(fin)}</div>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # =====================================================
-    # 📌 عرض العمليات المالية
-    # =====================================================
-    for b in fin:
-        with st.expander(f"💵 عملية رقم {b['id']} — الوحدة {b['unit_no']} — {b['client_name']}"):
-
-            st.write(f"**الوحدة:** {b['unit_no']}")
-            st.write(f"**العميل:** {b['client_name']}")
-            st.write(f"**الدخول:** {b['check_in']}")
-            st.write(f"**الخروج:** {b['check_out']}")
-            st.write(f"**السعر:** {b['price']}")
-            st.write(f"**المصاريف:** {b['expenses']}")
-            st.write(f"**التعويضات:** {b['compensations']}")
-            st.write(f"**ملاحظات:** {b['note']}")
-
-            c1, c2 = st.columns(2)
-
-            # زر عرض الفاتورة
-            with c1:
-                if st.button("🧾 عرض الفاتورة", key=f"invoice_fin_{b['id']}"):
-                    st.session_state.invoice_booking = b
-                    st.rerun()
-
-            # زر تعديل العملية المالية (لاحقًا)
-            with c2:
-                st.info("✏️ تعديل العملية المالية سيتم إضافته لاحقًا.")
-
-
-    # ============================
-    # 📌 عرض العمليات المالية
-    # ============================
-    for b in fin:
-        with st.expander(f"💵 عملية رقم {b['id']} — الوحدة {b['unit_no']} — {b['client_name']}"):
-            st.write(f"**الوحدة:** {b['unit_no']}")
-            st.write(f"**العميل:** {b['client_name']}")
-            st.write(f"**الدخول:** {b['check_in']}")
-            st.write(f"**الخروج:** {b['check_out']}")
-            st.write(f"**السعر:** {b['price']}")
-            st.write(f"**المصاريف:** {b['expenses']}")
-            st.write(f"**التعويضات:** {b['compensations']}")
-            st.write(f"**ملاحظات:** {b['note']}")
-
-            c1, c2 = st.columns(2)
-
-            # زر عرض الفاتورة
-            with c1:
-                if st.button("🧾 عرض الفاتورة", key=f"invoice_fin_{b['id']}"):
-                    st.session_state.invoice_booking = b
-                    st.rerun()
-
-            # زر تعديل العملية المالية (لاحقًا)
-            with c2:
-                st.info("✏️ تعديل العملية المالية سيتم إضافته لاحقًا.")
-
-    # =========================================================
-# 📊 عرض الملخص المالي (إجمالي الإيرادات والمصاريف والصافي)
-# =========================================================
-if fin:
-    df_fin = pd.DataFrame(fin)
-
-    # إصلاح القيم الفارغة
-    df_fin["price"] = df_fin["price"].fillna(0)
-    df_fin["expenses"] = df_fin["expenses"].fillna(0)
-    df_fin["compensations"] = df_fin["compensations"].fillna(0)
-
-    total_income = df_fin["price"].sum()
-    total_expenses = df_fin["expenses"].sum()
-    total_comp = df_fin["compensations"].sum()
-
-    net = total_income - total_expenses + total_comp
-
-    c1, c2, c3, c4 = st.columns(4)
-
-    with c1:
-        st.markdown(
-            "<div class='glass-metric'><div class='neon-sub'>إجمالي الإيرادات</div>"
-            f"<div class='neon-number'>{total_income}</div></div>",
-            unsafe_allow_html=True
-        )
-
-    with c2:
-        st.markdown(
-            "<div class='glass-metric'><div class='neon-sub'>إجمالي المصاريف</div>"
-            f"<div class='neon-number'>{total_expenses}</div></div>",
-            unsafe_allow_html=True
-        )
-
-    with c3:
-        st.markdown(
-            "<div class='glass-metric'><div class='neon-sub'>إجمالي التعويضات</div>"
-            f"<div class='neon-number'>{total_comp}</div></div>",
-            unsafe_allow_html=True
-        )
-
-    with c4:
-        st.markdown(
-            "<div class='glass-metric'><div class='neon-sub'>صافي الربح</div>"
-            f"<div class='neon-number'>{net}</div></div>",
-            unsafe_allow_html=True
-        )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # جدول العمليات المالية
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.dataframe(
-        df_fin[[
-            "id", "unit_no", "client_name", "check_in",
-            "check_out", "price", "expenses", "compensations"
-        ]],
-        use_container_width=True
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-else:
-    st.info("لا توجد بيانات مالية ضمن الفترة المحددة.")
-
-    # =========================================================
-    # 🧾 فواتير PDF لكل عملية
-    # =========================================================
-    st.markdown("## 🧾 طباعة الفواتير (PDF A4 عربي + إنجليزي)")
-
-    for b in fin:
-        with st.expander(f"فاتورة الحجز رقم {b['id']} — {b['client_name']} — الوحدة {b['unit_no']}"):
-            pdf_bytes = generate_invoice_pdf(b, settings)
-            file_name = f"invoice_{b['id']}.pdf"
-
-            st.download_button(
-                label="📥 تحميل الفاتورة PDF",
-                data=pdf_bytes,
-                file_name=file_name,
-                mime="application/pdf",
-                key=f"pdf_{b['id']}"
+        with c1:
+            st.markdown(
+                "<div class='glass-metric'><div class='neon-sub'>إجمالي الإيرادات</div>"
+                f"<div class='neon-number'>{total_income}</div></div>",
+                unsafe_allow_html=True
             )
 
-    # =========================================================
-    # ✏️ تعديل / حذف العمليات المالية
-    # =========================================================
-    st.markdown("## ✏️ تعديل أو حذف العمليات المالية")
+        with c2:
+            st.markdown(
+                "<div class='glass-metric'><div class='neon-sub'>إجمالي المصاريف</div>"
+                f"<div class='neon-number'>{total_expenses}</div></div>",
+                unsafe_allow_html=True
+            )
 
-    for b in fin:
-        with st.expander(f"🧾 العملية رقم {b['id']} — {b['client_name']} — {b['unit_no']}"):
+        with c3:
+            st.markdown(
+                "<div class='glass-metric'><div class='neon-sub'>إجمالي التعويضات</div>"
+                f"<div class='neon-number'>{total_comp}</div></div>",
+                unsafe_allow_html=True
+            )
 
-            st.write(f"**الوحدة:** {b['unit_no']}")
-            st.write(f"**العميل:** {b['client_name']}")
-            st.write(f"**الدخول:** {b['check_in']}")
-            st.write(f"**الخروج:** {b['check_out']}")
-            st.write(f"**السعر:** {b['price']}")
-            st.write(f"**المصاريف:** {b['expenses']}")
-            st.write(f"**التعويضات:** {b['compensations']}")
-            st.write(f"**ملاحظات:** {b['note']}")
+        with c4:
+            st.markdown(
+                "<div class='glass-metric'><div class='neon-sub'>صافي الربح</div>"
+                f"<div class='neon-number'>{net}</div></div>",
+                unsafe_allow_html=True
+            )
 
-            col1, col2 = st.columns(2)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-            # زر تعديل العملية
-            with col1:
-                if st.button(f"✏️ تعديل العملية {b['id']}", key=f"edit_fin_{b['id']}"):
-                    st.session_state.edit_financial = b
-                    st.rerun()
+        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+        st.dataframe(
+            df_fin[[
+                "id", "unit_no", "client_name", "check_in",
+                "check_out", "price", "expenses", "compensations"
+            ]],
+            use_container_width=True
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
-            # زر حذف العملية
-            with col2:
-                if st.button(f"🗑️ حذف العملية {b['id']}", key=f"del_fin_{b['id']}"):
-                    supabase.table("bookings").delete().eq("id", b["id"]).execute()
-                    st.error("تم حذف العملية المالية")
-                    st.rerun()
-
-    # نافذة تعديل العملية المالية
-    if st.session_state.edit_financial:
-        b = st.session_state.edit_financial
-
-        st.markdown("## ✏️ تعديل العملية المالية")
-
-        with st.form("edit_fin_form"):
-            price = st.number_input("السعر", min_value=0, value=b["price"])
-            expenses = st.number_input("المصاريف", min_value=0, value=b["expenses"])
-            comp = st.number_input("التعويضات", min_value=0, value=b["compensations"])
-            note = st.text_area("ملاحظات", b["note"])
-
-            if st.form_submit_button("💾 حفظ التعديلات"):
-                supabase.table("bookings").update({
-                    "price": price,
-                    "expenses": expenses,
-                    "compensations": comp,
-                    "note": note
-                }).eq("id", b["id"]).execute()
-
-                st.success("تم تحديث العملية المالية")
-                st.session_state.edit_financial = None
-                st.rerun()
+    else:
+        st.info("لا توجد بيانات مالية ضمن الفترة المحددة.")
 
 # =========================================================
 # ⚙️ التبويب السادس: الإعدادات
