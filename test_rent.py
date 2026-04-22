@@ -222,6 +222,12 @@ with tabs[1]:
             return today - timedelta(days=1)
 
     # -----------------------------
+    # جلب البيانات بدون كاش
+    # -----------------------------
+    st.cache_data.clear()   # 🔥 أهم خطوة
+    data = supabase.table("bookings").select("*").order("id", desc=True).execute().data or []
+
+    # -----------------------------
     # الفلاتر
     # -----------------------------
     col_filter1, col_filter2 = st.columns(2)
@@ -240,10 +246,8 @@ with tabs[1]:
         )
 
     # -----------------------------
-    # جلب آخر حجز لكل وحدة
+    # آخر حجز لكل وحدة
     # -----------------------------
-    data = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
-
     last_by_unit = {}
     for b in data:
         u = b.get("unit_no")
@@ -251,7 +255,7 @@ with tabs[1]:
             last_by_unit[u] = b
 
     # -----------------------------
-    # عرض الوحدات في شبكة 4 أعمدة
+    # عرض الوحدات
     # -----------------------------
     cards_cols = st.columns(4)
 
@@ -263,12 +267,11 @@ with tabs[1]:
             b = last_by_unit.get(u)
             busy = False
 
-            # 🔥 إصلاح شرط الانشغال باستخدام تحويل التاريخ
             if b and b.get("check_out"):
                 check_out_date = to_date(b["check_out"])
                 busy = check_out_date > today
 
-            # تطبيق الفلاتر
+            # الفلاتر
             if show_only_busy and not busy:
                 continue
 
@@ -282,9 +285,7 @@ with tabs[1]:
                 "linear-gradient(135deg, rgba(34,197,94,0.18), rgba(6,78,59,0.75))"
             )
 
-            # -----------------------------
-            # بطاقة الوحدة (HTML فقط)
-            # -----------------------------
+            # بطاقة الوحدة
             st.markdown(
                 f"""
                 <div class='glass-card' style="margin-bottom:0.6rem; background:{bg};">
@@ -297,27 +298,21 @@ with tabs[1]:
                 unsafe_allow_html=True
             )
 
-            # -----------------------------
-            # زر عرض التفاصيل
-            # -----------------------------
+            # زر التفاصيل
             if st.button(f"📄 عرض تفاصيل الوحدة {u}", key=f"unit_details_btn_{u}"):
                 st.session_state.selected_unit = u
                 st.session_state.selected_booking = b
                 st.session_state.show_extend_form = False
                 st.rerun()
 
-            # -----------------------------
-            # زر حجز الوحدة مباشرة (إذا كانت شاغرة)
-            # -----------------------------
+            # زر الحجز المباشر
             if not busy:
                 if st.button(f"➕ حجز الوحدة {u}", key=f"book_unit_{u}"):
                     st.session_state.new_booking_unit = u
                     st.session_state.active_tab = 2
                     st.rerun()
 
-            # -----------------------------
-            # معلومات إضافية أسفل البطاقة
-            # -----------------------------
+            # معلومات إضافية
             if b:
                 st.markdown(
                     f"""
@@ -335,7 +330,9 @@ with tabs[1]:
                     supabase.table("bookings").update({
                         "check_out": str(today)
                     }).eq("id", b["id"]).execute()
-                    st.success("تم إنهاء الحجز وإفراغ الوحدة.")
+
+                    st.cache_data.clear()   # 🔥 مهم جدًا
+                    time.sleep(0.2)         # 🔥 يعطي Supabase وقت لتحديث البيانات
                     st.rerun()
 
                 # زر تمديد الحجز
@@ -351,9 +348,9 @@ with tabs[1]:
                     unsafe_allow_html=True
                 )
 
-    # =========================================================
-    # 📄 صفحة تفاصيل الوحدة
-    # =========================================================
+    # -----------------------------
+    # صفحة تفاصيل الوحدة
+    # -----------------------------
     if st.session_state.get("selected_unit"):
 
         st.markdown("<hr>", unsafe_allow_html=True)
@@ -372,16 +369,15 @@ with tabs[1]:
         else:
             st.info("لا توجد حجوزات سابقة لهذه الوحدة.")
 
-    # =========================================================
-    # ⏳ نموذج تمديد الحجز
-    # =========================================================
+    # -----------------------------
+    # نموذج تمديد الحجز
+    # -----------------------------
     if st.session_state.get("show_extend_form", False):
 
         b = st.session_state.extend_booking
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='neon-title'>تمديد الحجز</div>", unsafe_allow_html=True)
-        st.markdown("<div class='neon-sub'>قم باختيار تاريخ الخروج الجديد.</div>", unsafe_allow_html=True)
 
         with st.form("extend_form"):
             new_date = st.date_input(
@@ -395,9 +391,10 @@ with tabs[1]:
                     "check_out": str(new_date)
                 }).eq("id", b["id"]).execute()
 
-                st.success("تم تمديد الحجز بنجاح.")
-                st.session_state.show_extend_form = False
+                st.cache_data.clear()
+                time.sleep(0.2)
                 st.rerun()
+
 
 
 
