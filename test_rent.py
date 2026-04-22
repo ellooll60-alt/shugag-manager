@@ -204,93 +204,6 @@ tabs = st.tabs([
 ])
 
 # =========================================================
-# 🏠 التبويب الأول: Dashboard
-# =========================================================
-with tabs[0]:
-
-    st.markdown("<div class='neon-title'>لوحة التحكم</div>", unsafe_allow_html=True)
-    st.markdown("<div class='neon-sub'>نظرة عامة على أداء النظام اليوم.</div>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    bookings = supabase.table("bookings").select("*").execute().data or []
-
-    total_bookings = len(bookings)
-    total_units = len(units)
-
-    busy_units = set()
-    today_str = str(today)
-
-    for b in bookings:
-        if b["check_in"] <= today_str <= b["check_out"]:
-            busy_units.add(b["unit_no"])
-
-    free_units = total_units - len(busy_units)
-
-    df = pd.DataFrame(bookings)
-    if not df.empty:
-        df["price"] = df["price"].fillna(0)
-        df["expenses"] = df["expenses"].fillna(0)
-        df["compensations"] = df["compensations"].fillna(0)
-
-        total_income = df["price"].sum()
-        total_expenses = df["expenses"].sum()
-        total_comp = df["compensations"].sum()
-        net = total_income - total_expenses + total_comp
-    else:
-        total_income = total_expenses = total_comp = net = 0
-
-    c1, c2, c3, c4 = st.columns(4)
-
-    with c1:
-        st.markdown(
-            f"<div class='glass-metric'><div class='neon-sub'>إجمالي الحجوزات</div>"
-            f"<div class='neon-number'>{total_bookings}</div></div>",
-            unsafe_allow_html=True
-        )
-
-    with c2:
-        st.markdown(
-            f"<div class='glass-metric'><div class='neon-sub'>الوحدات المشغولة</div>"
-            f"<div class='neon-number'>{len(busy_units)}</div></div>",
-            unsafe_allow_html=True
-        )
-
-    with c3:
-        st.markdown(
-            f"<div class='glass-metric'><div class='neon-sub'>الوحدات الشاغرة</div>"
-            f"<div class='neon-number'>{free_units}</div></div>",
-            unsafe_allow_html=True
-        )
-
-    with c4:
-        st.markdown(
-            f"<div class='glass-metric'><div class='neon-sub'>صافي الربح</div>"
-            f"<div class='neon-number'>{net}</div></div>",
-            unsafe_allow_html=True
-        )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    if not df.empty:
-        df["check_in"] = pd.to_datetime(df["check_in"])
-        df["day"] = df["check_in"].dt.date
-
-        chart = px.histogram(df, x="day", title="عدد الحجوزات حسب الأيام")
-        st.plotly_chart(chart, use_container_width=True)
-
-    st.markdown("<div class='neon-title'>آخر 10 حجوزات</div>", unsafe_allow_html=True)
-
-    if not df.empty:
-        st.dataframe(
-            df.sort_values("check_in", ascending=False).head(10)[[
-                "id", "unit_no", "client_name", "check_in", "check_out", "price"
-            ]],
-            use_container_width=True
-        )
-    else:
-        st.info("لا توجد حجوزات مسجلة.")
-
-# =========================================================
 # 📊 التبويب الثاني: حالة الوحدات
 # =========================================================
 with tabs[1]:
@@ -341,7 +254,8 @@ with tabs[1]:
             b = last_by_unit.get(u)
             busy = False
 
-            if b and b.get("check_out") and b["check_out"] >= str(today):
+            # 🔥 إصلاح شرط الانشغال
+            if b and b.get("check_out") and b["check_out"] > str(today):
                 busy = True
 
             # تطبيق الفلاتر
@@ -379,6 +293,7 @@ with tabs[1]:
             if st.button(f"📄 عرض تفاصيل الوحدة {u}", key=f"unit_details_btn_{u}"):
                 st.session_state.selected_unit = u
                 st.session_state.selected_booking = b
+                st.session_state.show_extend_form = False
                 st.rerun()
 
             # -----------------------------
@@ -416,8 +331,8 @@ with tabs[1]:
                 # زر تمديد الحجز
                 if st.button(f"⏳ تمديد الحجز للوحدة {u}", key=f"extend_booking_{u}"):
                     st.session_state.extend_booking = b
-                    st.session_state.selected_unit = u
                     st.session_state.show_extend_form = True
+                    st.session_state.selected_unit = u
                     st.rerun()
 
             else:
@@ -429,7 +344,7 @@ with tabs[1]:
     # =========================================================
     # 📄 صفحة تفاصيل الوحدة
     # =========================================================
-    if "selected_unit" in st.session_state and st.session_state.selected_unit:
+    if st.session_state.get("selected_unit"):
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown(
@@ -456,6 +371,7 @@ with tabs[1]:
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='neon-title'>تمديد الحجز</div>", unsafe_allow_html=True)
+        st.markdown("<div class='neon-sub'>قم باختيار تاريخ الخروج الجديد.</div>", unsafe_allow_html=True)
 
         with st.form("extend_form"):
             new_date = st.date_input(
@@ -472,6 +388,7 @@ with tabs[1]:
                 st.success("تم تمديد الحجز بنجاح.")
                 st.session_state.show_extend_form = False
                 st.rerun()
+
 
 
 
