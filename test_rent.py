@@ -213,6 +213,15 @@ with tabs[1]:
     st.markdown("<br>", unsafe_allow_html=True)
 
     # -----------------------------
+    # دالة تحويل التاريخ
+    # -----------------------------
+    def to_date(x):
+        try:
+            return datetime.strptime(x[:10], "%Y-%m-%d").date()
+        except:
+            return today - timedelta(days=1)
+
+    # -----------------------------
     # الفلاتر
     # -----------------------------
     col_filter1, col_filter2 = st.columns(2)
@@ -254,9 +263,10 @@ with tabs[1]:
             b = last_by_unit.get(u)
             busy = False
 
-            # 🔥 إصلاح شرط الانشغال
-            if b and b.get("check_out") and b["check_out"] > str(today):
-                busy = True
+            # 🔥 إصلاح شرط الانشغال باستخدام تحويل التاريخ
+            if b and b.get("check_out"):
+                check_out_date = to_date(b["check_out"])
+                busy = check_out_date > today
 
             # تطبيق الفلاتر
             if show_only_busy and not busy:
@@ -376,7 +386,7 @@ with tabs[1]:
         with st.form("extend_form"):
             new_date = st.date_input(
                 "تاريخ الخروج الجديد",
-                value=datetime.strptime(b["check_out"], "%Y-%m-%d").date() + timedelta(days=1),
+                value=to_date(b["check_out"]) + timedelta(days=1),
                 key="extend_date"
             )
 
@@ -388,6 +398,7 @@ with tabs[1]:
                 st.success("تم تمديد الحجز بنجاح.")
                 st.session_state.show_extend_form = False
                 st.rerun()
+
 
 
 
