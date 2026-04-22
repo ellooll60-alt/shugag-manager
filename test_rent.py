@@ -224,8 +224,8 @@ with tabs[1]:
     # -----------------------------
     # جلب البيانات بدون كاش
     # -----------------------------
-    st.cache_data.clear()   # 🔥 أهم خطوة
-    data = supabase.table("bookings").select("*").order("id", desc=True).execute().data or []
+    st.cache_data.clear()
+    data = supabase.table("bookings").select("*").execute().data or []
 
     # -----------------------------
     # الفلاتر
@@ -246,12 +246,25 @@ with tabs[1]:
         )
 
     # -----------------------------
-    # آخر حجز لكل وحدة
+    # آخر حجز فعلي لكل وحدة
     # -----------------------------
     last_by_unit = {}
+
     for b in data:
         u = b.get("unit_no")
-        if u and u not in last_by_unit:
+        if not u:
+            continue
+
+        # إذا لم يتم تسجيل الوحدة بعد
+        if u not in last_by_unit:
+            last_by_unit[u] = b
+            continue
+
+        # مقارنة تاريخ الدخول
+        old_date = to_date(last_by_unit[u]["check_in"])
+        new_date = to_date(b["check_in"])
+
+        if new_date > old_date:
             last_by_unit[u] = b
 
     # -----------------------------
@@ -331,8 +344,8 @@ with tabs[1]:
                         "check_out": str(today)
                     }).eq("id", b["id"]).execute()
 
-                    st.cache_data.clear()   # 🔥 مهم جدًا
-                    time.sleep(0.2)         # 🔥 يعطي Supabase وقت لتحديث البيانات
+                    st.cache_data.clear()
+                    time.sleep(0.2)
                     st.rerun()
 
                 # زر تمديد الحجز
@@ -394,6 +407,7 @@ with tabs[1]:
                 st.cache_data.clear()
                 time.sleep(0.2)
                 st.rerun()
+
 
 
 
