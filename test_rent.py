@@ -314,14 +314,14 @@ with tabs[1]:
                 st.session_state.selected_unit = u
                 st.session_state.selected_booking = b
                 st.session_state.show_extend_form = False
-                st.experimental_rerun()
+                st.rerun()
 
             # زر الحجز المباشر
             if not busy:
                 if st.button(f"➕ حجز الوحدة {u}", key=f"book_unit_{u}"):
                     st.session_state.new_booking_unit = u
                     st.session_state.active_tab = 2
-                    st.experimental_rerun()
+                    st.rerun()
 
             # معلومات إضافية
             if b:
@@ -343,14 +343,14 @@ with tabs[1]:
                     }).eq("id", b["id"]).execute()
 
                     st.cache_data.clear()
-                    st.experimental_rerun()
+                    st.rerun()
 
                 # زر تمديد الحجز
                 if st.button(f"⏳ تمديد الحجز للوحدة {u}", key=f"extend_booking_{u}"):
                     st.session_state.extend_booking = b
                     st.session_state.show_extend_form = True
                     st.session_state.selected_unit = u
-                    st.experimental_rerun()
+                    st.rerun()
 
             else:
                 st.markdown(
@@ -402,7 +402,8 @@ with tabs[1]:
                 }).eq("id", b["id"]).execute()
 
                 st.cache_data.clear()
-                st.experimental_rerun()
+                st.rerun()
+
 
 
 
