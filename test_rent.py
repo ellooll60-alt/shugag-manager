@@ -255,12 +255,10 @@ with tabs[1]:
         if not u:
             continue
 
-        # إذا لم يتم تسجيل الوحدة بعد
         if u not in last_by_unit:
             last_by_unit[u] = b
             continue
 
-        # مقارنة تاريخ الدخول
         old_date = to_date(last_by_unit[u]["check_in"])
         new_date = to_date(b["check_in"])
 
@@ -316,14 +314,14 @@ with tabs[1]:
                 st.session_state.selected_unit = u
                 st.session_state.selected_booking = b
                 st.session_state.show_extend_form = False
-                st.rerun()
+                st.experimental_rerun()
 
             # زر الحجز المباشر
             if not busy:
                 if st.button(f"➕ حجز الوحدة {u}", key=f"book_unit_{u}"):
                     st.session_state.new_booking_unit = u
                     st.session_state.active_tab = 2
-                    st.rerun()
+                    st.experimental_rerun()
 
             # معلومات إضافية
             if b:
@@ -345,15 +343,14 @@ with tabs[1]:
                     }).eq("id", b["id"]).execute()
 
                     st.cache_data.clear()
-                    time.sleep(0.2)
-                    st.rerun()
+                    st.experimental_rerun()
 
                 # زر تمديد الحجز
                 if st.button(f"⏳ تمديد الحجز للوحدة {u}", key=f"extend_booking_{u}"):
                     st.session_state.extend_booking = b
                     st.session_state.show_extend_form = True
                     st.session_state.selected_unit = u
-                    st.rerun()
+                    st.experimental_rerun()
 
             else:
                 st.markdown(
@@ -405,8 +402,7 @@ with tabs[1]:
                 }).eq("id", b["id"]).execute()
 
                 st.cache_data.clear()
-                time.sleep(0.2)
-                st.rerun()
+                st.experimental_rerun()
 
 
 
