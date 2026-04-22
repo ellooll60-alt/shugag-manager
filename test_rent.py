@@ -296,7 +296,13 @@ with tabs[0]:
 with tabs[1]:
     st.markdown("<div class='neon-title'>حالة الوحدات الآن</div>", unsafe_allow_html=True)
     st.markdown("<div class='neon-sub'>عرض سريع لحالة كل وحدة.</div>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# زر فتح تفاصيل الوحدة
+if st.button(f"📄 عرض تفاصيل {u}", key=f"unit_details_{u}"):
+    st.session_state.selected_unit = u
+    st.rerun()
+
 
     col_filter1, col_filter2 = st.columns(2)
     with col_filter1:
