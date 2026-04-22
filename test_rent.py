@@ -222,9 +222,8 @@ with tabs[1]:
             return today - timedelta(days=1)
 
     # -----------------------------
-    # جلب البيانات بدون كاش
+    # جلب البيانات مباشرة بدون كاش
     # -----------------------------
-    st.cache_data.clear()
     data = supabase.table("bookings").select("*").execute().data or []
 
     # -----------------------------
@@ -330,7 +329,6 @@ with tabs[1]:
                         "check_out": str(today)
                     }).eq("id", b["id"]).execute()
 
-                    st.cache_data.clear()
                     st.rerun()
 
                 # زر تمديد الحجز
@@ -389,8 +387,8 @@ with tabs[1]:
                     "check_out": str(new_date)
                 }).eq("id", b["id"]).execute()
 
-                st.cache_data.clear()
                 st.rerun()
+
 
 
 
