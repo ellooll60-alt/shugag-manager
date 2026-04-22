@@ -300,7 +300,12 @@ with tabs[1]:
 
     col_filter1, col_filter2 = st.columns(2)
     with col_filter1:
-        selected_platform = st.selectbox("تصفية حسب المنصة", ["الكل"] + plats)
+        selected_platform = st.selectbox(
+    "تصفية حسب المنصة",
+    ["الكل"] + plats,
+    key="units_filter_platform"
+)
+
     with col_filter2:
         show_only_busy = st.checkbox("عرض الوحدات المشغولة فقط")
 
