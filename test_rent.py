@@ -202,6 +202,43 @@ tabs = st.tabs([
     "💰 التقارير المالية",
     "⚙️ الإعدادات"
 ])
+# =========================================================
+# 🏠 التبويب الأول: الصفحة الرئيسية
+# =========================================================
+with tabs[0]:
+
+    st.markdown("<div class='neon-title'>لوحة التحكم الرئيسية</div>", unsafe_allow_html=True)
+    st.markdown("<div class='neon-sub'>نظرة سريعة على أداء النظام اليوم.</div>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # جلب البيانات مباشرة
+    bookings = supabase.table("bookings").select("*").execute().data or []
+    units_data = supabase.table("units_names").select("*").execute().data or []
+    platforms_data = supabase.table("platforms").select("*").execute().data or []
+
+    # إحصائيات سريعة
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("إجمالي الحجوزات", len(bookings))
+
+    with col2:
+        st.metric("عدد الوحدات", len(units_data))
+
+    with col3:
+        st.metric("عدد المنصات", len(platforms_data))
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # آخر 10 حجوزات
+    st.markdown("<div class='neon-title'>آخر 10 حجوزات</div>", unsafe_allow_html=True)
+
+    if bookings:
+        df = pd.DataFrame(bookings)
+        df = df.sort_values("id", ascending=False).head(10)
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.info("لا توجد حجوزات مسجلة حتى الآن.")
 
 # =========================================================
 # 📊 التبويب الثاني: حالة الوحدات
