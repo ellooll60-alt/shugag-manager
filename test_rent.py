@@ -190,9 +190,70 @@ plats = [r["name"] for r in (supabase.table("platforms").select("name").execute(
 
 today = date.today()
 
-# ============================================
+# ============================
+# 🎨 تحميل الـ CSS المحسّن
+# ============================
+st.markdown("""
+<style>
+
+/* خلفية الصفحة */
+body {
+    background-color: #0d1117 !important;
+}
+
+/* العناوين النيون */
+.neon-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #4ea8ff;
+    text-shadow: 0 0 8px #4ea8ff;
+    margin-bottom: 0.5rem;
+}
+
+.neon-sub {
+    font-size: 0.95rem;
+    color: #bcd7ff;
+    opacity: 0.9;
+}
+
+/* بطاقات الزجاج */
+.glass-card {
+    padding: 1rem;
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 0 12px rgba(0,0,0,0.25);
+    color: #fff;
+}
+
+/* نصوص أوضح */
+div, span, p {
+    color: #e6e6e6 !important;
+}
+
+/* الجداول */
+.dataframe {
+    background-color: rgba(255,255,255,0.05) !important;
+    color: #fff !important;
+}
+
+/* أزرار */
+button, .stButton>button {
+    background: linear-gradient(135deg, #007bff, #005fcc);
+    color: white !important;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    border: none;
+    font-weight: 600;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================
 # 📌 تبويبات النظام
-# ============================================
+# ============================
 tabs = st.tabs([
     "🏠 الرئيسية",
     "📊 حالة الوحدات",
@@ -202,6 +263,7 @@ tabs = st.tabs([
     "💰 التقارير المالية",
     "⚙️ الإعدادات"
 ])
+
 # =========================================================
 # 🏠 التبويب الأول: الصفحة الرئيسية
 # =========================================================
