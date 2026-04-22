@@ -228,6 +228,17 @@ with tabs[1]:
     data = supabase.table("bookings").select("*").execute().data or []
 
     # -----------------------------
+    # دالة إيجاد الحجز الحالي للوحدة
+    # -----------------------------
+    def get_current_booking(unit_no):
+        today_str = str(today)
+        for b in data:
+            if b["unit_no"] == unit_no:
+                if b["check_in"] <= today_str <= b["check_out"]:
+                    return b
+        return None
+
+    # -----------------------------
     # الفلاتر
     # -----------------------------
     col_filter1, col_filter2 = st.columns(2)
@@ -246,26 +257,6 @@ with tabs[1]:
         )
 
     # -----------------------------
-    # آخر حجز فعلي لكل وحدة
-    # -----------------------------
-    last_by_unit = {}
-
-    for b in data:
-        u = b.get("unit_no")
-        if not u:
-            continue
-
-        if u not in last_by_unit:
-            last_by_unit[u] = b
-            continue
-
-        old_date = to_date(last_by_unit[u]["check_in"])
-        new_date = to_date(b["check_in"])
-
-        if new_date > old_date:
-            last_by_unit[u] = b
-
-    # -----------------------------
     # عرض الوحدات
     # -----------------------------
     cards_cols = st.columns(4)
@@ -275,12 +266,9 @@ with tabs[1]:
         col = cards_cols[idx % 4]
         with col:
 
-            b = last_by_unit.get(u)
-            busy = False
-
-            if b and b.get("check_out"):
-                check_out_date = to_date(b["check_out"])
-                busy = check_out_date > today
+            # 🔥 الحجز الحالي للوحدة
+            b = get_current_booking(u)
+            busy = b is not None
 
             # الفلاتر
             if show_only_busy and not busy:
@@ -354,7 +342,7 @@ with tabs[1]:
 
             else:
                 st.markdown(
-                    "<div style='font-size:0.75rem; color:#9ca3af;'>لا يوجد حجز مسجل.</div>",
+                    "<div style='font-size:0.75rem; color:#9ca3af;'>لا يوجد حجز مسجل حالياً.</div>",
                     unsafe_allow_html=True
                 )
 
