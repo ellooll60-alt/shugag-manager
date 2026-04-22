@@ -294,85 +294,102 @@ with tabs[0]:
 # 📊 التبويب الثاني: حالة الوحدات
 # =========================================================
 with tabs[1]:
+
     st.markdown("<div class='neon-title'>حالة الوحدات الآن</div>", unsafe_allow_html=True)
     st.markdown("<div class='neon-sub'>عرض سريع لحالة كل وحدة.</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
-# زر فتح تفاصيل الوحدة
-if st.button(f"📄 عرض تفاصيل {u}", key=f"unit_details_{u}"):
-    st.session_state.selected_unit = u
-    st.rerun()
-
-
+    # -----------------------------
+    # الفلاتر
+    # -----------------------------
     col_filter1, col_filter2 = st.columns(2)
+
     with col_filter1:
         selected_platform = st.selectbox(
-    "تصفية حسب المنصة",
-    ["الكل"] + plats,
-    key="units_filter_platform"
-)
+            "تصفية حسب المنصة",
+            ["الكل"] + plats,
+            key="units_filter_platform"
+        )
 
     with col_filter2:
-        show_only_busy = st.checkbox("عرض الوحدات المشغولة فقط")
+        show_only_busy = st.checkbox(
+            "عرض الوحدات المشغولة فقط",
+            key="units_filter_busy"
+        )
 
+    # -----------------------------
+    # جلب آخر حجز لكل وحدة
+    # -----------------------------
     data = supabase.table("bookings").select("*").order("check_in", desc=True).execute().data or []
+
     last_by_unit = {}
     for b in data:
         u = b.get("unit_no")
         if u and u not in last_by_unit:
             last_by_unit[u] = b
 
+    # -----------------------------
+    # عرض الوحدات في شبكة 4 أعمدة
+    # -----------------------------
     cards_cols = st.columns(4)
 
     for idx, u in enumerate(units):
+
         col = cards_cols[idx % 4]
         with col:
+
             b = last_by_unit.get(u)
             busy = False
+
             if b and b.get("check_out") and b["check_out"] >= str(today):
                 busy = True
 
+            # تطبيق الفلاتر
             if show_only_busy and not busy:
                 continue
 
             if selected_platform != "الكل" and b and b.get("platform") != selected_platform:
                 continue
 
+            # لون البطاقة
             bg = (
                 "linear-gradient(135deg, rgba(248,113,113,0.18), rgba(127,29,29,0.75))"
                 if busy else
                 "linear-gradient(135deg, rgba(34,197,94,0.18), rgba(6,78,59,0.75))"
             )
 
+            # -----------------------------
+            # بطاقة الوحدة (HTML فقط)
+            # -----------------------------
             st.markdown(
                 f"""
-                <div class='glass-card' style="margin-bottom:0.9rem; background:{bg};">
+                <div class='glass-card' style="margin-bottom:0.6rem; background:{bg};">
                     <div style="font-size:1rem; font-weight:700;">الوحدة {u}</div>
                     <div style="font-size:0.8rem;">
                         الحالة: {"مشغولة" if busy else "شاغرة"}
                     </div>
+                </div>
                 """,
                 unsafe_allow_html=True
             )
 
+            # -----------------------------
+            # زر عرض التفاصيل (تفاعل حقيقي)
+            # -----------------------------
+            if st.button(f"📄 عرض تفاصيل الوحدة {u}", key=f"unit_details_btn_{u}"):
+                st.session_state.selected_unit = u
+                st.rerun()
+
+            # -----------------------------
+            # معلومات إضافية أسفل البطاقة
+            # -----------------------------
             if b:
                 st.markdown(
                     f"""
                     <div style="font-size:0.75rem; margin-top:0.3rem;">
                         العميل: {b.get('client_name','-')}<br>
                         من: {b.get('check_in','-')} — إلى: {b.get('check_out','-')}<br>
-                        المنصة: {b.get('platform','-')}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown(
-                    "<div style='font-size:0.75rem; color:#9ca3af;'>لا يوجد حجز مسجل.</div>",
-                    unsafe_allow_html=True
-                )
-
-            st.markdown("</div>", unsafe_allow_html=True)
+                        المنصة: {b.get('
 
 # =========================================================
 # ➕ التبويب الثالث: حجز جديد
