@@ -374,11 +374,21 @@ with tabs[1]:
             )
 
             # -----------------------------
-            # زر عرض التفاصيل (تفاعل حقيقي)
+            # زر عرض التفاصيل
             # -----------------------------
             if st.button(f"📄 عرض تفاصيل الوحدة {u}", key=f"unit_details_btn_{u}"):
                 st.session_state.selected_unit = u
+                st.session_state.selected_booking = b
                 st.rerun()
+
+            # -----------------------------
+            # زر حجز الوحدة مباشرة (إذا كانت شاغرة)
+            # -----------------------------
+            if not busy:
+                if st.button(f"➕ حجز الوحدة {u}", key=f"book_unit_{u}"):
+                    st.session_state.new_booking_unit = u
+                    st.session_state.active_tab = 2
+                    st.rerun()
 
             # -----------------------------
             # معلومات إضافية أسفل البطاقة
@@ -394,11 +404,75 @@ with tabs[1]:
                     """,
                     unsafe_allow_html=True
                 )
+
+                # زر إنهاء الحجز
+                if st.button(f"❌ إنهاء الحجز للوحدة {u}", key=f"end_booking_{u}"):
+                    supabase.table("bookings").update({
+                        "check_out": str(today)
+                    }).eq("id", b["id"]).execute()
+                    st.success("تم إنهاء الحجز وإفراغ الوحدة.")
+                    st.rerun()
+
+                # زر تمديد الحجز
+                if st.button(f"⏳ تمديد الحجز للوحدة {u}", key=f"extend_booking_{u}"):
+                    st.session_state.extend_booking = b
+                    st.session_state.selected_unit = u
+                    st.session_state.show_extend_form = True
+                    st.rerun()
+
             else:
                 st.markdown(
                     "<div style='font-size:0.75rem; color:#9ca3af;'>لا يوجد حجز مسجل.</div>",
                     unsafe_allow_html=True
                 )
+
+    # =========================================================
+    # 📄 صفحة تفاصيل الوحدة
+    # =========================================================
+    if "selected_unit" in st.session_state and st.session_state.selected_unit:
+
+        st.markdown("<hr>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='neon-title'>تفاصيل الوحدة {st.session_state.selected_unit}</div>",
+            unsafe_allow_html=True
+        )
+
+        unit_bookings = [
+            b for b in data if b["unit_no"] == st.session_state.selected_unit
+        ]
+
+        if unit_bookings:
+            df_unit = pd.DataFrame(unit_bookings)
+            st.dataframe(df_unit, use_container_width=True)
+        else:
+            st.info("لا توجد حجوزات سابقة لهذه الوحدة.")
+
+    # =========================================================
+    # ⏳ نموذج تمديد الحجز
+    # =========================================================
+    if st.session_state.get("show_extend_form", False):
+
+        b = st.session_state.extend_booking
+
+        st.markdown("<hr>", unsafe_allow_html=True)
+        st.markdown("<div class='neon-title'>تمديد الحجز</div>", unsafe_allow_html=True)
+
+        with st.form("extend_form"):
+            new_date = st.date_input(
+                "تاريخ الخروج الجديد",
+                value=datetime.strptime(b["check_out"], "%Y-%m-%d").date() + timedelta(days=1),
+                key="extend_date"
+            )
+
+            if st.form_submit_button("💾 حفظ التمديد"):
+                supabase.table("bookings").update({
+                    "check_out": str(new_date)
+                }).eq("id", b["id"]).execute()
+
+                st.success("تم تمديد الحجز بنجاح.")
+                st.session_state.show_extend_form = False
+                st.rerun()
+
 
 
 # =========================================================
