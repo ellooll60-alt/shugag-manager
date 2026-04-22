@@ -389,7 +389,17 @@ with tabs[1]:
                     <div style="font-size:0.75rem; margin-top:0.3rem;">
                         العميل: {b.get('client_name','-')}<br>
                         من: {b.get('check_in','-')} — إلى: {b.get('check_out','-')}<br>
-                        المنصة: {b.get('
+                        المنصة: {b.get('platform','-')}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    "<div style='font-size:0.75rem; color:#9ca3af;'>لا يوجد حجز مسجل.</div>",
+                    unsafe_allow_html=True
+                )
+
 
 # =========================================================
 # ➕ التبويب الثالث: حجز جديد
