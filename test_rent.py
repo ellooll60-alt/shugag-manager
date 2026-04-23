@@ -395,22 +395,21 @@ with tabs[1]:
                 unsafe_allow_html=True
             )
 
-            # زر التفاصيل
-            if st.button(f"📄 عرض تفاصيل الوحدة {u}", key=f"unit_details_btn_{u}"):
-                st.session_state.selected_unit = u
-                st.session_state.selected_booking = b
-                st.session_state.show_extend_form = False
-                st.rerun()
-
-            # زر الحجز المباشر
+            # -----------------------------
+            # 🔵 زر الحجز المباشر للوحدات الشاغرة
+            # -----------------------------
             if not busy:
                 if st.button(f"➕ حجز الوحدة {u}", key=f"book_unit_{u}"):
                     st.session_state.new_booking_unit = u
-                    st.session_state.active_tab = 2
+                    st.session_state.active_tab = 2   # الانتقال لتبويب الحجز الجديد
                     st.rerun()
 
-            # معلومات إضافية
-            if b:
+            # -----------------------------
+            # 🔴 عرض التفاصيل + إنهاء + تمديد للوحدات المشغولة
+            # -----------------------------
+            if busy:
+
+                # معلومات إضافية
                 st.markdown(
                     f"""
                     <div style="font-size:0.75rem; margin-top:0.3rem;">
@@ -422,12 +421,18 @@ with tabs[1]:
                     unsafe_allow_html=True
                 )
 
-                # زر إنهاء الحجز
+                # زر عرض التفاصيل
+                if st.button(f"📄 عرض تفاصيل الوحدة {u}", key=f"unit_details_btn_{u}"):
+                    st.session_state.selected_unit = u
+                    st.session_state.selected_booking = b
+                    st.session_state.show_extend_form = False
+                    st.rerun()
+
+                # زر إنهاء الحجز (تحديث فوري)
                 if st.button(f"❌ إنهاء الحجز للوحدة {u}", key=f"end_booking_{u}"):
                     supabase.table("bookings").update({
-                        "check_out": str(today)
+                        "check_out": str(today - timedelta(days=1))  # 🔥 الحل النهائي
                     }).eq("id", b["id"]).execute()
-
                     st.rerun()
 
                 # زر تمديد الحجز
@@ -487,6 +492,7 @@ with tabs[1]:
                 }).eq("id", b["id"]).execute()
 
                 st.rerun()
+
 
 
 
